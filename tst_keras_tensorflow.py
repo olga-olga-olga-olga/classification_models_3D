@@ -16,6 +16,7 @@ if __name__ == '__main__':
     os.environ["CUDA_VISIBLE_DEVICES"] = f"{gpu_use}"
 
 
+
 def get_model_memory_usage(batch_size, model):
     import numpy as np
     from keras import backend as K
