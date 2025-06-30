@@ -5,7 +5,6 @@ __author__ = 'ZFTurbo: https://kaggle.com/zfturbo'
 if __name__ == '__main__':
     import sys
     import os
-
     # For this test, make sure that only the tested framework is available
     sys.modules['jax'] = None
     sys.modules['torch'] = None
@@ -27,6 +26,9 @@ from keras import backend as K
 from keras.layers import Dropout, Dense, Activation, GlobalAveragePooling3D
 from keras.models import Model
 from keras.src.utils import summary_utils
+from dataloader import create_batch_generators, get_preprocess_input_dummy
+from dataset import Datasets, Dataset1Handler, Dataset2Handler, Dataset3Handler
+
 
 
 def get_model_memory_usage(batch_size, model):
@@ -189,7 +191,7 @@ def train_model_example():
     use_weights = 'imagenet'
     shape_size = (96, 96, 96, 3)
     backbone = 'efficientnetb0'
-    num_classes = 2
+    num_classes = 3
     batch_size_train = 12
     batch_size_valid = 12
     learning_rate = 0.0001
@@ -199,7 +201,36 @@ def train_model_example():
     validation_steps = 20
     dropout_val = 0.1
 
-    modelPoint, preprocess_input = Classifiers.get(backbone)
+
+    data_path_1 = "/data/share/IMAGO/SF/"
+    excel_path_1 =  "/home/radv/ofilipowicz/my-scratch/datasetlabels/UCSF-PDGM_clinical_data_adjusted.xls"
+
+    data_path_2 = "/data/share/IMAGO/400_cases/IMAGO_501/bids/IMAGO_first_release/derivatives - registered/"
+    excel_path_2 = "/home/radv/ofilipowicz/my-scratch/datasetlabels/Clinical_data_1st_release.xls"
+
+    data_path_3 = "/data/share/IMAGO/Rotterdam/"
+    excel_path_3 = "/home/radv/ofilipowicz/my-scratch/datasetlabels/Rotterdam_clinical_data.xls"
+
+
+
+    # Initialize datasets
+    datasets = Datasets(target_size=(96, 96, 96), target_spacing=(1.0, 1.0, 1.0))
+    datasets.add_dataset(data_path_1, excel_path_1, Dataset1Handler)
+    datasets.add_dataset(data_path_2, excel_path_2, Dataset2Handler)
+    datasets.add_dataset(data_path_3, excel_path_3, Dataset3Handler)
+    
+    
+    # Create batch generators (replaces gen_random_volume)
+    gen_train, gen_valid, class_weights = create_batch_generators(
+        datasets, 
+        batch_size_train=batch_size_train,
+        batch_size_valid=batch_size_valid
+    )
+    
+    # Get model and dummy preprocess function
+    modelPoint, _ = Classifiers.get(backbone)
+    preprocess_input = get_preprocess_input_dummy()
+
     model = modelPoint(
         input_shape=shape_size,
         include_top=False,
@@ -209,14 +240,14 @@ def train_model_example():
     x = GlobalAveragePooling3D()(x)
     x = Dropout(dropout_val)(x)
     x = Dense(num_classes, name='prediction')(x)
-    x = Activation('sigmoid')(x)
+    x = Activation('softmax')(x)
     model = Model(inputs=model.inputs, outputs=x)
 
     print(model.summary())
     print(get_model_memory_usage(batch_size_train, model))
     optim = Adam(learning_rate=learning_rate)
 
-    loss_to_use = 'binary_crossentropy'
+    loss_to_use = 'categorical_crossentropy'
     model.compile(optimizer=optim, loss=loss_to_use, metrics=['acc',])
 
     cache_model_path = '{}_temp.keras'.format(backbone)
@@ -229,14 +260,15 @@ def train_model_example():
         EarlyStopping(monitor='val_loss', patience=patience, verbose=0, mode='min'),
     ]
 
-    gen_train = batch_generator(
-        batch_size_train,
-        preprocess_input
-    )
-    gen_valid = batch_generator(
-        batch_size_valid,
-        preprocess_input,
-    )
+    # gen_train = batch_generator(
+    #     batch_size_train,
+    #     preprocess_input
+    # )
+    # gen_valid = batch_generator(
+    #     batch_size_valid,
+    #     preprocess_input,
+    # )
+
     history = model.fit(
         gen_train,
         epochs=epochs,
@@ -246,6 +278,7 @@ def train_model_example():
         verbose=1,
         initial_epoch=0,
         callbacks=callbacks
+        class_weight={i: float(w) for i, w in enumerate(class_weights)}
     )
 
     best_loss = max(history.history['val_loss'])
