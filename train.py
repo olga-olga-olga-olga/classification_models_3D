@@ -1,0 +1,101 @@
+import os
+os.environ["TF_CUDNN_DETERMINISTIC"] = "1"
+import sys
+sys.path.append('/scratch/radv/ijwamelink/classification/')
+import random
+import numpy as np
+import pandas as pd
+
+from glob import glob
+from keras.models import Model
+from datagenerator import datagen
+from keras.optimizers import Adam
+from sklearn.model_selection import train_test_split
+from classification_models_3D.kkeras import Classifiers
+from tensorflow.keras.mixed_precision import set_global_policy
+from tensorflow.keras.mixed_precision import LossScaleOptimizer
+from keras.layers import Dropout, Dense, Activation, GlobalAveragePooling3D
+from keras.callbacks import ModelCheckpoint, ReduceLROnPlateau, CSVLogger, EarlyStopping
+
+set_global_policy('mixed_float16')
+
+patient_loc_sf = '/data/radv/radG/RAD/users/i.wamelink/AI_benchmark/AI_benchmark_datasets/temp/609_3D-DD-Res-U-Net_Osman/images_t1_t2_fl'
+patient_loc_egd = '/data/radv/radG/RAD/users/i.wamelink/AI_benchmark/AI_benchmark_datasets/temp/609_3D-DD-Res-U-Net_Osman/testing/images_t1_t2_fl'
+
+patients_sf = pd.read_excel('/scratch/radv/ijwamelink/classification/UCSF-PDGM-metadata_v2.xlsx', engine='openpyxl')
+patients_sf['ID'] = patients_sf['ID'].str.replace(r'(\d+)$', lambda m: f"{int(m.group(1)):04}", regex=True)
+patients_sf = patients_sf[~patients_sf.ID.isna()]
+patients_egd = pd.read_csv('/scratch/radv/ijwamelink/classification/Genetic_data.csv')
+patients_egd = patients_egd[(patients_egd.who_idh_mutation_status != -1) & (~patients_egd.Subject.isna())]
+
+
+patients = list(patients_sf.ID) + list(patients_egd.Subject)
+
+
+# Split into 90% train, 10% val
+train_patients, val_patients = train_test_split(patients, test_size=0.1, random_state=42)
+train_patients = [f'{patient_loc_sf}/{patient}.npy' if 'UCSF' in patient else f'{patient_loc_egd}/{patient}.npy' for patient in train_patients]
+val_patients = [f'{patient_loc_sf}/{patient}.npy' if 'UCSF' in patient else f'{patient_loc_egd}/{patient}.npy' for patient in val_patients]
+
+def get_output(patient):
+    patient = patient.split('/')[-1].split('.')[0]
+    if 'UCSF' in patient:
+        IDH = patients_sf.IDH[patients_sf.ID == patient]
+        if IDH.values[0] == 'wildtype':
+            return 0
+        else:
+            return 1
+    else:
+        IDH = patients_egd.who_idh_mutation_status[patients_egd.Subject == patient]
+        return IDH.values[0]
+
+train_output = [get_output(patient) for patient in train_patients]
+val_output = [get_output(patient) for patient in val_patients]
+
+batch_size = 1
+num_classes = 1
+patience = 10
+learning_rate = 0.0001
+model_type = 'densenet169'
+epochs = 50
+
+ResNet18, preprocess_input = Classifiers.get('densenet169')
+model = ResNet18(input_shape=(240, 240, 160, 3), classes=num_classes, weights='imagenet')
+
+x = model.layers[-1].output
+x = GlobalAveragePooling3D()(x)
+x = Dropout(0.1)(x)
+x = Dense(num_classes, name='prediction')(x)
+x = Activation('sigmoid')(x)
+model = Model(inputs=model.inputs, outputs=x)
+
+print(model.summary())
+optim = Adam(learning_rate=learning_rate)
+optim = LossScaleOptimizer(optim)
+loss_to_use = 'binary_crossentropy'
+model.compile(optimizer=optim, loss=loss_to_use, metrics=['acc', ], jit_compile=True)
+
+cache_model_path = '/scratch/radv/ijwamelink/classification/models/{}_temp.keras'.format(model_type)
+best_model_path = '/scratch/radv/ijwamelink/classification/models/{}'.format(model_type) + '-{val_loss:.4f}-{epoch:02d}.keras'
+callbacks = [
+    ModelCheckpoint(cache_model_path, monitor='val_loss', verbose=0),
+    ModelCheckpoint(best_model_path, monitor='val_loss', verbose=0),
+    ReduceLROnPlateau(monitor='val_loss', factor=0.95, patience=3, min_lr=1e-9, min_delta=1e-8, verbose=1, mode='min'),
+    CSVLogger('/scratch/radv/ijwamelink/classification/models/history_{}_lr_{}.csv'.format(model_type, learning_rate), append=True),
+    EarlyStopping(monitor='val_loss', patience=patience, verbose=0, mode='min'),
+]
+
+train_gen = datagen(train_patients[:5], train_output[:5], batch_size=batch_size)
+train_val = datagen(val_patients[:2], val_output[:2], batch_size=batch_size)
+
+history = model.fit(
+    train_gen,
+    epochs=epochs,
+    validation_data=train_val,
+    verbose=1,
+    initial_epoch=0,
+    callbacks=callbacks
+)
+
+best_loss = max(history.history['val_loss'])
+print('Training finished. Loss: {}'.format(best_loss))
