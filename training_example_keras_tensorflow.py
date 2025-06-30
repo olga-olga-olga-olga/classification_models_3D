@@ -19,7 +19,7 @@ from classification_models_3D.kkeras import Classifiers
 import numpy as np
 import random
 import matplotlib.pyplot as plt
-from skimage import measure
+# from skimage import measure
 from keras.optimizers import Adam
 from keras.callbacks import ModelCheckpoint, ReduceLROnPlateau, CSVLogger, EarlyStopping
 from keras import backend as K
@@ -140,21 +140,21 @@ def gen_random_volume(debug=False):
         answ[1] = 1
 
     # Debug
-    if debug:
-        fig = plt.figure()
-        ax = fig.add_subplot(1, 1, 1, projection='3d')
+    # if debug:
+    #     fig = plt.figure()
+    #     ax = fig.add_subplot(1, 1, 1, projection='3d')
 
-        verts, faces, normals, values = measure.marching_cubes(img[..., 1], 127)
-        ax.plot_trisurf(
-            verts[:, 0],
-            verts[:, 1],
-            faces,
-            verts[:, 2],
-            cmap='Spectral',
-            antialiased=False,
-            linewidth=0.0
-        )
-        plt.show()
+    #     verts, faces, normals, values = measure.marching_cubes(img[..., 1], 127)
+    #     ax.plot_trisurf(
+    #         verts[:, 0],
+    #         verts[:, 1],
+    #         faces,
+    #         verts[:, 2],
+    #         cmap='Spectral',
+    #         antialiased=False,
+    #         linewidth=0.0
+    #     )
+    #     plt.show()
 
     # White noise
     density = random.uniform(0, 0.1)
@@ -247,7 +247,7 @@ def train_model_example():
     print(get_model_memory_usage(batch_size_train, model))
     optim = Adam(learning_rate=learning_rate)
 
-    loss_to_use = 'categorical_crossentropy'
+    loss_to_use = 'sparse_categorical_crossentropy'
     model.compile(optimizer=optim, loss=loss_to_use, metrics=['acc',])
 
     cache_model_path = '{}_temp.keras'.format(backbone)
@@ -277,7 +277,7 @@ def train_model_example():
         validation_steps=validation_steps,
         verbose=1,
         initial_epoch=0,
-        callbacks=callbacks
+        callbacks=callbacks,
         class_weight={i: float(w) for i, w in enumerate(class_weights)}
     )
 
