@@ -42,7 +42,7 @@ class MedicalDataLoader:
     
     def __init__(self, 
                  datasets_instance,
-                 target_size: Tuple[int, int, int] = (96, 96, 96),
+                 target_size: Tuple[int, int, int] = (240, 240, 189),
                  target_spacing: Tuple[float, float, float] = (1.0, 1.0, 1.0),
                  test_size: float = 0.2,
                  val_size: float = 0.1,

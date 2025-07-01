@@ -78,7 +78,7 @@ def test_dataset_creation():
     
     try:
         # Initialize datasets
-        datasets = Datasets(target_size=(96, 96, 96), target_spacing=(1.0, 1.0, 1.0))
+        datasets = Datasets(target_size=(240, 240, 189), target_spacing=(1.0, 1.0, 1.0))
         
         # Try to add datasets
         datasets.add_dataset(data_path_1, excel_path_1, Dataset1Handler)
@@ -118,7 +118,7 @@ def test_data_loading(datasets):
             datasets, 
             batch_size_train=2,  # Small batch for testing
             batch_size_valid=2,
-            target_size=(96, 96, 96),
+            target_size=(240, 240, 189),
             test_size=0.3,  # Larger test size for small datasets
             val_size=0.2
         )
@@ -160,7 +160,7 @@ def test_model_compatibility():
     try:
         # Create a dummy batch in the expected format
         batch_size = 2
-        expected_shape = (batch_size, 96, 96, 96, 3)  # (batch, D, H, W, channels)
+        expected_shape = (batch_size, 240, 240, 189, 3)  # (batch, D, H, W, channels)
         expected_labels = (batch_size, 3)  # (batch, num_classes) one-hot
         
         print(f"✅ Expected image shape: {expected_shape}")
