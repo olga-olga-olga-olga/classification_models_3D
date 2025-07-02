@@ -16,6 +16,8 @@ from keras.mixed_precision import set_global_policy
 from keras.mixed_precision import LossScaleOptimizer
 from keras.layers import Dropout, Dense, Activation, GlobalAveragePooling3D
 from keras.callbacks import ModelCheckpoint, ReduceLROnPlateau, CSVLogger, EarlyStopping
+import tensorflow as tf
+from tensorflow.keras import backend as K
 
 set_global_policy('mixed_float16')
 
@@ -52,14 +54,14 @@ def get_output(patient):
 train_output = [get_output(patient) for patient in train_patients]
 val_output = [get_output(patient) for patient in val_patients]
 
-batch_size = 5
-num_classes = 3
+batch_size = 1
+num_classes = 1
 patience = 10
 learning_rate = 0.0001
-model_type = 'densenet169'
+model_type = 'resnet34'
 epochs = 50
 
-ResNet18, preprocess_input = Classifiers.get('densenet169')
+ResNet18, preprocess_input = Classifiers.get('resnet34')
 model = ResNet18(input_shape=(240, 240, 160, 3), classes=num_classes, weights='imagenet')
 
 x = model.layers[-1].output
@@ -72,11 +74,21 @@ model = Model(inputs=model.inputs, outputs=x)
 print(model.summary())
 optim = Adam(learning_rate=learning_rate)
 optim = LossScaleOptimizer(optim)
-loss_to_use = 'binary_crossentropy'
+def binary_focal_loss(gamma=2., alpha=0.25):
+    def focal_loss(y_true, y_pred):
+        y_true = tf.cast(y_true, tf.float32)
+        y_pred = tf.clip_by_value(y_pred, K.epsilon(), 1. - K.epsilon())
+        loss = -alpha * y_true * tf.pow(1 - y_pred, gamma) * tf.math.log(y_pred) \
+               - (1 - alpha) * (1 - y_true) * tf.pow(y_pred, gamma) * tf.math.log(1 - y_pred)
+        return tf.reduce_mean(loss)
+    return focal_loss
+
+loss_to_use = binary_focal_loss(gamma=2., alpha=0.25)
+# loss_to_use = 'binary_crossentropy'
 model.compile(optimizer=optim, loss=loss_to_use, metrics=['acc', ], jit_compile=True)
 
 # Change all model/log save paths to your directory
-save_dir = '/home/radv/ofilipowicz/my-scratch/all the runs m2/models/'
+save_dir = '/home/radv/ofilipowicz/my-scratch/all_the_runs_m2/models/'
 
 cache_model_path = os.path.join(save_dir, '{}_temp.keras'.format(model_type))
 best_model_path = os.path.join(save_dir, '{}-{{val_loss:.4f}}-{{epoch:02d}}.keras'.format(model_type))
@@ -90,8 +102,8 @@ callbacks = [
     EarlyStopping(monitor='val_loss', patience=patience, verbose=0, mode='min'),
 ]
 
-train_gen = datagen(train_patients[:5], train_output[:5], batch_size=batch_size)
-train_val = datagen(val_patients[:2], val_output[:2], batch_size=batch_size)
+train_gen = datagen(train_patients[:10], train_output[:10], batch_size=batch_size)
+train_val = datagen(val_patients[:5], val_output[:5], batch_size=batch_size)
 
 history = model.fit(
     train_gen,
