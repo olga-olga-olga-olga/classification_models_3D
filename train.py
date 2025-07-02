@@ -12,8 +12,8 @@ from datagenerator import datagen
 from keras.optimizers import Adam
 from sklearn.model_selection import train_test_split
 from classification_models_3D.kkeras import Classifiers
-from tensorflow.keras.mixed_precision import set_global_policy
-from tensorflow.keras.mixed_precision import LossScaleOptimizer
+from keras.mixed_precision import set_global_policy
+from keras.mixed_precision import LossScaleOptimizer
 from keras.layers import Dropout, Dense, Activation, GlobalAveragePooling3D
 from keras.callbacks import ModelCheckpoint, ReduceLROnPlateau, CSVLogger, EarlyStopping
 
@@ -22,7 +22,7 @@ set_global_policy('mixed_float16')
 patient_loc_sf = '/data/radv/radG/RAD/users/i.wamelink/AI_benchmark/AI_benchmark_datasets/temp/609_3D-DD-Res-U-Net_Osman/images_t1_t2_fl'
 patient_loc_egd = '/data/radv/radG/RAD/users/i.wamelink/AI_benchmark/AI_benchmark_datasets/temp/609_3D-DD-Res-U-Net_Osman/testing/images_t1_t2_fl'
 
-patients_sf = pd.read_excel('/scratch/radv/ijwamelink/classification/UCSF-PDGM-metadata_v2.xlsx', engine='openpyxl')
+patients_sf = pd.read_excel('/home/radv/ofilipowicz/my-scratch/datasetlabels/UCSF-PDGM_clinical_data.xlsx', engine='openpyxl')
 patients_sf['ID'] = patients_sf['ID'].str.replace(r'(\d+)$', lambda m: f"{int(m.group(1)):04}", regex=True)
 patients_sf = patients_sf[~patients_sf.ID.isna()]
 patients_egd = pd.read_csv('/scratch/radv/ijwamelink/classification/Genetic_data.csv')
@@ -52,8 +52,8 @@ def get_output(patient):
 train_output = [get_output(patient) for patient in train_patients]
 val_output = [get_output(patient) for patient in val_patients]
 
-batch_size = 1
-num_classes = 1
+batch_size = 5
+num_classes = 3
 patience = 10
 learning_rate = 0.0001
 model_type = 'densenet169'
@@ -75,13 +75,18 @@ optim = LossScaleOptimizer(optim)
 loss_to_use = 'binary_crossentropy'
 model.compile(optimizer=optim, loss=loss_to_use, metrics=['acc', ], jit_compile=True)
 
-cache_model_path = '/scratch/radv/ijwamelink/classification/models/{}_temp.keras'.format(model_type)
-best_model_path = '/scratch/radv/ijwamelink/classification/models/{}'.format(model_type) + '-{val_loss:.4f}-{epoch:02d}.keras'
+# Change all model/log save paths to your directory
+save_dir = '/home/radv/ofilipowicz/my-scratch/all the runs m2/models/'
+
+cache_model_path = os.path.join(save_dir, '{}_temp.keras'.format(model_type))
+best_model_path = os.path.join(save_dir, '{}-{{val_loss:.4f}}-{{epoch:02d}}.keras'.format(model_type))
+csv_log_path = os.path.join(save_dir, 'history_{}_lr_{}.csv'.format(model_type, learning_rate))
+
 callbacks = [
     ModelCheckpoint(cache_model_path, monitor='val_loss', verbose=0),
     ModelCheckpoint(best_model_path, monitor='val_loss', verbose=0),
     ReduceLROnPlateau(monitor='val_loss', factor=0.95, patience=3, min_lr=1e-9, min_delta=1e-8, verbose=1, mode='min'),
-    CSVLogger('/scratch/radv/ijwamelink/classification/models/history_{}_lr_{}.csv'.format(model_type, learning_rate), append=True),
+    CSVLogger(csv_log_path, append=True),
     EarlyStopping(monitor='val_loss', patience=patience, verbose=0, mode='min'),
 ]
 
