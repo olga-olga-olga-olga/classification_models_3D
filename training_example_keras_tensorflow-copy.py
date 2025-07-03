@@ -81,7 +81,7 @@ def categorical_focal_loss(gamma=2., alpha=0.25):
 
 def train_model_example():
     use_weights = 'imagenet'
-    shape_size = (96, 96, 96, 3)
+    shape_size = (240, 240, 128, 3)
     backbone = 'resnet18'
     num_classes = 3
     batch_size_train = 1
@@ -106,7 +106,7 @@ def train_model_example():
 
 
     # Initialize datasets
-    datasets = Datasets(target_size=(96, 96, 96), target_spacing=(1.0, 1.0, 1.0))
+    datasets = Datasets(target_size=(240, 249, 128), target_spacing=(1.0, 1.0, 1.0))
     datasets.add_dataset(data_path_1, excel_path_1, Dataset1Handler)
     datasets.add_dataset(data_path_2, excel_path_2, Dataset2Handler)
     datasets.add_dataset(data_path_3, excel_path_3, Dataset3Handler)
@@ -139,8 +139,8 @@ def train_model_example():
     print(get_model_memory_usage(batch_size_train, model))
     optim = Adam(learning_rate=learning_rate)
 
-    loss_to_use = categorical_focal_loss(gamma=2., alpha=0.25)
-    # loss_to_use ='categorical_crossentropy' 
+    # loss_to_use = categorical_focal_loss(gamma=2., alpha=0.25)
+    loss_to_use ='categorical_crossentropy' 
     model.compile(optimizer=optim, loss=loss_to_use, metrics=['acc',])
 
     cache_model_path = '{}_temp.keras'.format(backbone)

@@ -102,12 +102,12 @@ callbacks = [
     EarlyStopping(monitor='val_loss', patience=patience, verbose=0, mode='min'),
 ]
 
-train_gen = datagen(train_patients[:10], train_output[:10], batch_size=batch_size)
-train_val = datagen(val_patients[:5], val_output[:5], batch_size=batch_size)
+train_gen = datagen(train_patients, train_output, batch_size=batch_size)
+train_val = datagen(val_patients, val_output, batch_size=batch_size)
 
 history = model.fit(
     train_gen,
-    epochs=epochs,
+    epochs=epochs, 
     validation_data=train_val,
     verbose=1,
     initial_epoch=0,
