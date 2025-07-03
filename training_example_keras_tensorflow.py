@@ -68,14 +68,17 @@ def get_model_memory_usage(batch_size, model):
 
 
 
-def categorical_focal_loss(gamma=2., alpha=0.25):
+def categorical_focal_loss(gamma=2., alpha=None):
     def focal_loss(y_true, y_pred):
-        y_true = tf.cast(y_true, tf.float32)
         y_pred = tf.clip_by_value(y_pred, K.epsilon(), 1. - K.epsilon())
-        cross_entropy = -y_true * tf.math.log(y_pred)
-        weight = alpha * tf.pow(1 - y_pred, gamma)
-        loss = weight * cross_entropy
-        return tf.reduce_mean(tf.reduce_sum(loss, axis=-1))
+        ce = -tf.reduce_sum(y_true * tf.math.log(y_pred), axis=-1)
+        p_t = tf.reduce_sum(y_true * y_pred, axis=-1)
+        if alpha is not None:
+            alpha_t = tf.reduce_sum(y_true * alpha, axis=-1)
+            ce = alpha_t * ce
+        focal_term = tf.pow(1 - p_t, gamma)
+        loss = focal_term * ce
+        return tf.reduce_mean(loss)
     return focal_loss
 
 
@@ -139,7 +142,9 @@ def train_model_example():
     print(get_model_memory_usage(batch_size_train, model))
     optim = Adam(learning_rate=learning_rate)
 
-    loss_to_use = categorical_focal_loss(gamma=2., alpha=0.25)
+    alpha_weights = [1.0, 3.0, 0.6] 
+
+    loss_to_use = categorical_focal_loss(gamma=2.0, alpha=alpha_weights)
     # loss_to_use ='categorical_crossentropy' 
     model.compile(optimizer=optim, loss=loss_to_use, metrics=['acc',])
 
