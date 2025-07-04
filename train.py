@@ -57,7 +57,7 @@ val_output = [get_output(patient) for patient in val_patients]
 
 batch_size = 1
 num_classes = 1
-patience = 10
+patience = 20
 learning_rate = 0.0001
 model_type = 'resnet34'
 epochs = 50
