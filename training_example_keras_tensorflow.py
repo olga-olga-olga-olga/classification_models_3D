@@ -84,17 +84,17 @@ def categorical_focal_loss(gamma=2., alpha=None):
 
 def train_model_example():
     use_weights = 'imagenet'
-    shape_size = (96, 96, 96, 3)
+    shape_size = (240, 240, 128, 3)
     backbone = 'resnet18'
     num_classes = 3
     batch_size_train = 1
     batch_size_valid = 1
     learning_rate = 0.0001
-    patience = 10
+    patience = 15
     epochs = 50
     steps_per_epoch = 100
     validation_steps = 20
-    dropout_val = 0.1
+    dropout_val = 0.3
 
 
     data_path_1 = "/data/share/IMAGO/SF/"
@@ -109,7 +109,7 @@ def train_model_example():
 
 
     # Initialize datasets
-    datasets = Datasets(target_size=(96, 96, 96), target_spacing=(1.0, 1.0, 1.0))
+    datasets = Datasets(target_size=(240, 240, 128), target_spacing=(1.0, 1.0, 1.0))
     datasets.add_dataset(data_path_1, excel_path_1, Dataset1Handler)
     datasets.add_dataset(data_path_2, excel_path_2, Dataset2Handler)
     datasets.add_dataset(data_path_3, excel_path_3, Dataset3Handler)
@@ -146,7 +146,16 @@ def train_model_example():
 
     loss_to_use = categorical_focal_loss(gamma=2.0, alpha=alpha_weights)
     # loss_to_use ='categorical_crossentropy' 
-    model.compile(optimizer=optim, loss=loss_to_use, metrics=['acc',])
+    model.compile(
+        optimizer=optim,
+        loss=loss_to_use,
+        metrics=[
+            'acc',
+            class_0_accuracy,
+            class_1_accuracy,
+            class_2_accuracy
+        ]
+    )
 
   # Change all model/log save paths to your directory
     save_dir = '/home/radv/ofilipowicz/my-scratch/all_the_runs_m2/models_3cat/'
@@ -182,6 +191,19 @@ def train_model_example():
 
     best_loss = max(history.history['val_loss'])
     print('Training finished. Loss: {}'.format(best_loss))
+
+
+def class_0_accuracy(y_true, y_pred):
+    class_id = 0
+    return tf.keras.metrics.binary_accuracy(y_true[:, class_id], y_pred[:, class_id])
+
+def class_1_accuracy(y_true, y_pred):
+    class_id = 1
+    return tf.keras.metrics.binary_accuracy(y_true[:, class_id], y_pred[:, class_id])
+
+def class_2_accuracy(y_true, y_pred):
+    class_id = 2
+    return tf.keras.metrics.binary_accuracy(y_true[:, class_id], y_pred[:, class_id])
 
 
 if __name__ == '__main__':
