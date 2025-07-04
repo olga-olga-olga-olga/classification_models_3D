@@ -29,6 +29,7 @@ from keras.src.utils import summary_utils
 from dataloader import create_batch_generators, get_preprocess_input_dummy
 from dataset import Datasets, Dataset1Handler, Dataset2Handler, Dataset3Handler
 import tensorflow as tf
+import datetime
 
 
 
@@ -165,9 +166,9 @@ def train_model_example():
     run_save_dir = os.path.join(save_dir, f"run_{timestamp}")
     os.makedirs(run_save_dir, exist_ok=True)
 
-    cache_model_path = os.path.join(run_save_dir, '{}_temp.keras'.format(model_type))
-    best_model_path = os.path.join(run_save_dir, '{}-{{val_loss:.4f}}-{{epoch:02d}}.keras'.format(model_type))
-    csv_log_path = os.path.join(run_save_dir, 'history_{}_lr_{}.csv'.format(model_type, learning_rate))
+    cache_model_path = os.path.join(run_save_dir, '{}_temp.keras'.format(backbone))
+    best_model_path = os.path.join(run_save_dir, '{}-{{val_loss:.4f}}-{{epoch:02d}}.keras'.format(backbone))
+    csv_log_path = os.path.join(run_save_dir, 'history_{}_lr_{}.csv'.format(backbone, learning_rate))
 
     callbacks = [
         ModelCheckpoint(cache_model_path, monitor='val_loss', verbose=0),
