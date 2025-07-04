@@ -17,7 +17,7 @@ from keras.mixed_precision import LossScaleOptimizer
 from keras.layers import Dropout, Dense, Activation, GlobalAveragePooling3D
 from keras.callbacks import ModelCheckpoint, ReduceLROnPlateau, CSVLogger, EarlyStopping
 import tensorflow as tf
-from tensorflow.keras import backend as K
+from keras import backend as K
 import datetime
 
 set_global_policy('mixed_float16')
