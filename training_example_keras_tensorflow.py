@@ -148,13 +148,23 @@ def train_model_example():
     # loss_to_use ='categorical_crossentropy' 
     model.compile(optimizer=optim, loss=loss_to_use, metrics=['acc',])
 
-    cache_model_path = '{}_temp.keras'.format(backbone)
-    best_model_path = '{}'.format(backbone) + '-{val_loss:.4f}-{epoch:02d}.keras'
+  # Change all model/log save paths to your directory
+    save_dir = '/home/radv/ofilipowicz/my-scratch/all_the_runs_m2/models_3cat/'
+
+    # Create a timestamped subdirectory for this run
+    timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+    run_save_dir = os.path.join(save_dir, f"run_{timestamp}")
+    os.makedirs(run_save_dir, exist_ok=True)
+
+    cache_model_path = os.path.join(run_save_dir, '{}_temp.keras'.format(model_type))
+    best_model_path = os.path.join(run_save_dir, '{}-{{val_loss:.4f}}-{{epoch:02d}}.keras'.format(model_type))
+    csv_log_path = os.path.join(run_save_dir, 'history_{}_lr_{}.csv'.format(model_type, learning_rate))
+
     callbacks = [
         ModelCheckpoint(cache_model_path, monitor='val_loss', verbose=0),
         ModelCheckpoint(best_model_path, monitor='val_loss', verbose=0),
         ReduceLROnPlateau(monitor='val_loss', factor=0.95, patience=3, min_lr=1e-9, min_delta=1e-8, verbose=1, mode='min'),
-        CSVLogger('history_{}_lr_{}.csv'.format(backbone, learning_rate), append=True),
+        CSVLogger(csv_log_path, append=True),
         EarlyStopping(monitor='val_loss', patience=patience, verbose=0, mode='min'),
     ]
 

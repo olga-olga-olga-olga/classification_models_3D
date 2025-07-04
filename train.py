@@ -18,6 +18,7 @@ from keras.layers import Dropout, Dense, Activation, GlobalAveragePooling3D
 from keras.callbacks import ModelCheckpoint, ReduceLROnPlateau, CSVLogger, EarlyStopping
 import tensorflow as tf
 from tensorflow.keras import backend as K
+import datetime
 
 set_global_policy('mixed_float16')
 
@@ -88,11 +89,16 @@ loss_to_use = binary_focal_loss(gamma=2., alpha=0.25)
 model.compile(optimizer=optim, loss=loss_to_use, metrics=['acc', ], jit_compile=True)
 
 # Change all model/log save paths to your directory
-save_dir = '/home/radv/ofilipowicz/my-scratch/all_the_runs_m2/models/'
+save_dir = '/home/radv/ofilipowicz/my-scratch/all_the_runs_m2/models_1cat/'
 
-cache_model_path = os.path.join(save_dir, '{}_temp.keras'.format(model_type))
-best_model_path = os.path.join(save_dir, '{}-{{val_loss:.4f}}-{{epoch:02d}}.keras'.format(model_type))
-csv_log_path = os.path.join(save_dir, 'history_{}_lr_{}.csv'.format(model_type, learning_rate))
+# Create a timestamped subdirectory for this run
+timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+run_save_dir = os.path.join(save_dir, f"run_{timestamp}")
+os.makedirs(run_save_dir, exist_ok=True)
+
+cache_model_path = os.path.join(run_save_dir, '{}_temp.keras'.format(model_type))
+best_model_path = os.path.join(run_save_dir, '{}-{{val_loss:.4f}}-{{epoch:02d}}.keras'.format(model_type))
+csv_log_path = os.path.join(run_save_dir, 'history_{}_lr_{}.csv'.format(model_type, learning_rate))
 
 callbacks = [
     ModelCheckpoint(cache_model_path, monitor='val_loss', verbose=0),
