@@ -62,12 +62,12 @@ learning_rate = 0.0001
 model_type = 'resnet34'
 epochs = 50
 
-ResNet18, preprocess_input = Classifiers.get('resnet34')
+ResNet18, preprocess_input = Classifiers.get('resnet18')
 model = ResNet18(input_shape=(240, 240, 160, 3), classes=num_classes, weights='imagenet')
 
 x = model.layers[-1].output
 x = GlobalAveragePooling3D()(x)
-x = Dropout(0.1)(x)
+x = Dropout(0.3)(x)
 x = Dense(num_classes, name='prediction')(x)
 x = Activation('sigmoid')(x)
 model = Model(inputs=model.inputs, outputs=x)
