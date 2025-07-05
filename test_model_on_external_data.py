@@ -62,7 +62,7 @@ if __name__ == '__main__':
     # --- LOAD MODEL WITH CUSTOM OBJECTS ---
     alpha_weights = [1.0, 3.0, 0.6]  # Use the same as in training
     custom_objects = {
-        'categorical_focal_loss': categorical_focal_loss(gamma=2.0, alpha=alpha_weights),
+        'focal_loss': categorical_focal_loss(gamma=2.0, alpha=alpha_weights),
         'class_0_accuracy': class_0_accuracy,
         'class_1_accuracy': class_1_accuracy,
         'class_2_accuracy': class_2_accuracy
