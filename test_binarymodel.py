@@ -17,14 +17,25 @@ def focal_loss(alpha=0.75, gamma=2.0):
         return -K.mean(focal_weight * tf.math.log(pt))
     return loss
 
+def binary_focal_loss(gamma=2., alpha=0.25):
+    def focal_loss(y_true, y_pred):
+        y_true = tf.cast(y_true, tf.float32)
+        y_pred = tf.clip_by_value(y_pred, K.epsilon(), 1. - K.epsilon())
+        loss = -alpha * y_true * tf.pow(1 - y_pred, gamma) * tf.math.log(y_pred) \
+               - (1 - alpha) * (1 - y_true) * tf.pow(y_pred, gamma) * tf.math.log(1 - y_pred)
+        return tf.reduce_mean(loss)
+    return focal_loss
+
+
+
 # UPDATE THESE PATHS
-model_path = '/path/to/your/model.keras'
-data_path = '/path/to/new/npy/files/'
-excel_path = '/path/to/new/labels.xlsx'
+model_path = '/home/radv/ofilipowicz/my-scratch/all_the_runs_m2/models/resnet34-0.0936-22.keras'
+data_path = '/data/share/IMAGO/400_cases/IMAGO_501/bids/IMAGO_first_release/derivatives - registered/'
+excel_path = '/home/radv/ofilipowicz/my-scratch/datasetlabels/Clinical_data_1st_release.xlsx'
 
 # Load data
 df = pd.read_excel(excel_path)
-test_files = [f'{data_path}/{pid}.npy' for pid in df['PatientID']]  # Change column name
+test_files = [f'{data_path}/{pid}.npy' for pid in df['Pseudo']]  # Change column name
 test_labels = df['IDH'].tolist()  # Change to your label column (0/1)
 
 # Filter existing files
@@ -34,7 +45,7 @@ existing_labels = [test_labels[i] for i, f in enumerate(test_files) if os.path.e
 print(f"Testing {len(existing_files)} files")
 
 # Load model and test
-model = load_model(model_path, custom_objects={'loss': focal_loss()})
+model = load_model(model_path, custom_objects={'focal_loss': binary_focal_loss()})
 test_gen = datagen(existing_files, existing_labels, batch_size=1)
 
 predictions = model.predict(test_gen, steps=len(existing_files))
