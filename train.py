@@ -55,6 +55,16 @@ def get_output(patient):
 train_output = [get_output(patient) for patient in train_patients]
 val_output = [get_output(patient) for patient in val_patients]
 
+# Filter out missing files
+train_patients = [p for p in train_patients if os.path.exists(p)]
+val_patients = [p for p in val_patients if os.path.exists(p)]
+
+# Update labels to match filtered files
+train_output = [get_output(patient) for patient in train_patients]
+val_output = [get_output(patient) for patient in val_patients]
+
+print(f"Training with {len(train_patients)} train files, {len(val_patients)} val files")
+
 batch_size = 1
 num_classes = 1
 patience = 20
