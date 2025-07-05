@@ -6,7 +6,6 @@ from keras.optimizers import Adam
 from keras.layers import Dropout, Dense, Activation, GlobalAveragePooling3D
 from keras.models import Model
 from keras import backend as K
-
 # Import your custom utilities and metrics
 from dataloader import create_batch_generators, get_preprocess_input_dummy
 from dataset import Datasets, Dataset1Handler, Dataset2Handler, Dataset3Handler
@@ -43,12 +42,12 @@ if __name__ == '__main__':
     data_path = "/data/share/IMAGO/Rotterdam/"          
     excel_path = "/home/radv/ofilipowicz/my-scratch/datasetlabels/Rotterdam_clinical_data.xls"   
     num_classes = 3
-    shape_size = (240, 240, 128, 3)
+    shape_size = (96, 96, 96, 3)
     steps = 100  # Set to number of batches in your test set
     batch_size = 1  
 
     # --- PREPARE DATASET AND GENERATOR ---
-    datasets = Datasets(target_size=(240, 240, 128), target_spacing=(1.0, 1.0, 1.0))
+    datasets = Datasets(target_size=(96, 96, 96), target_spacing=(1.0, 1.0, 1.0))
     # Use the appropriate handler for your external data
     datasets.add_dataset(data_path, excel_path, Dataset3Handler)  # Change handler if needed
 
@@ -62,7 +61,7 @@ if __name__ == '__main__':
     # --- LOAD MODEL WITH CUSTOM OBJECTS ---
     alpha_weights = [1.0, 3.0, 0.6]  # Use the same as in training
     custom_objects = {
-        'categorical_focal_loss': categorical_focal_loss(gamma=2.0, alpha=alpha_weights),
+        'focal_loss': categorical_focal_loss(gamma=2.0, alpha=alpha_weights),
         'class_0_accuracy': class_0_accuracy,
         'class_1_accuracy': class_1_accuracy,
         'class_2_accuracy': class_2_accuracy
