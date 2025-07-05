@@ -39,18 +39,18 @@ def class_2_accuracy(y_true, y_pred):
 
 if __name__ == '__main__':
     # --- CONFIGURE THESE PATHS ---
-    model_path = '/path/to/your/best_model.keras'  # Path to your saved model
-    data_path = '/path/to/external/data/'          # Path to your external data
-    excel_path = '/path/to/external/labels.xls'    # Path to your external labels
-    batch_size = 1
+    model_path = '/home/radv/ofilipowicz/my-scratch/all_the_runs_m2/resnet18-0.1223-09.keras'  
+    data_path = "/data/share/IMAGO/Rotterdam/"          
+    excel_path = "/home/radv/ofilipowicz/my-scratch/datasetlabels/Rotterdam_clinical_data.xls"   
     num_classes = 3
     shape_size = (240, 240, 128, 3)
     steps = 100  # Set to number of batches in your test set
+    batch_size = 1  
 
     # --- PREPARE DATASET AND GENERATOR ---
     datasets = Datasets(target_size=(240, 240, 128), target_spacing=(1.0, 1.0, 1.0))
     # Use the appropriate handler for your external data
-    datasets.add_dataset(data_path, excel_path, Dataset1Handler)  # Change handler if needed
+    datasets.add_dataset(data_path, excel_path, Dataset3Handler)  # Change handler if needed
 
     # Only need the validation generator for testing
     _, gen_test, _ = create_batch_generators(
