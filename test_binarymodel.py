@@ -25,7 +25,7 @@ excel_path = '/path/to/new/labels.xlsx'
 # Load data
 df = pd.read_excel(excel_path)
 test_files = [f'{data_path}/{pid}.npy' for pid in df['PatientID']]  # Change column name
-test_labels = df['IDH_label'].tolist()  # Change to your label column (0/1)
+test_labels = df['IDH'].tolist()  # Change to your label column (0/1)
 
 # Filter existing files
 existing_files = [f for f in test_files if os.path.exists(f)]
