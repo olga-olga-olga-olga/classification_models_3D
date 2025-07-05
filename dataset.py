@@ -130,7 +130,7 @@ class Dataset3Handler(BaseDatasetHandler):
         }
 
 class Datasets:
-    def __init__(self, target_size=(240, 240, 189), target_spacing=(1.0, 1.0, 1.0)):
+    def __init__(self, target_size=(96, 96, 96), target_spacing=(1.0, 1.0, 1.0)):
         """
         Initialize dataset handler
         
