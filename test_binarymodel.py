@@ -25,7 +25,20 @@ excel_path = '/path/to/new/labels.xlsx'
 # Load data
 df = pd.read_excel(excel_path)
 test_files = [f'{data_path}/{pid}.npy' for pid in df['PatientID']]  # Change column name
-test_labels = df['IDH'].tolist()  # Change to your label column (0/1)
+
+# Convert IDH labels to 0/1
+def convert_idh_label(idh_text):
+    if 'wt IDH' in str(idh_text):
+        return 0
+    elif 'IDH 1 mutation' in str(idh_text):
+        return 1
+    else:
+        print(f"Unknown IDH label: {idh_text}")
+        return None
+
+test_labels = [convert_idh_label(idh) for idh in df['IDH']]
+test_labels = [label for label in test_labels if label is not None]  # Remove None values
+
 
 # Filter existing files
 existing_files = [f for f in test_files if os.path.exists(f)]
