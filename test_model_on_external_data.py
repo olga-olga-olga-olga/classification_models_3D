@@ -228,11 +228,14 @@ def plot_class_performance_summary(y_true, y_pred, y_pred_proba, class_names, sa
 
 if __name__ == '__main__':
     # --- CONFIGURE THESE PATHS ---
-    model_path = '/home/radv/ofilipowicz/my-scratch/all_the_runs_m2/resnet18-0.1223-09.keras'  
+    model_path = '/home/radv/ofilipowicz/my-scratch/all_the_runs_m2/resnet18-0.1042-17.keras'  
     data_path = "/data/share/IMAGO/Rotterdam/"          
     excel_path = "/home/radv/ofilipowicz/my-scratch/datasetlabels/Rotterdam_clinical_data.xls"   
     output_dir = '/home/radv/ofilipowicz/my-scratch/test_results/'  # Directory to save plots
-    
+
+    # Extract model name (without extension) for file naming
+    model_name = os.path.splitext(os.path.basename(model_path))[0]
+
     num_classes = 3
     shape_size = (96, 96, 96, 3)
     steps = 100  # Set to number of batches in your test set
@@ -284,31 +287,40 @@ if __name__ == '__main__':
     print(f"Class distribution: {np.bincount(y_true)}")
 
     # --- GENERATE COMPREHENSIVE PLOTS ---
-    
     # 1. Confusion Matrix
     print("Generating confusion matrix...")
-    plot_confusion_matrix(y_true, y_pred, class_names, 
-                         save_path=os.path.join(output_dir, 'confusion_matrix.png'))
+    plot_confusion_matrix(
+        y_true, y_pred, class_names, 
+        save_path=os.path.join(output_dir, f'confusion_matrix_{model_name}.png')
+    )
     
     # 2. ROC Curves
     print("Generating ROC curves...")
-    plot_roc_curves(y_true, y_pred_proba, num_classes, class_names,
-                   save_path=os.path.join(output_dir, 'roc_curves.png'))
+    plot_roc_curves(
+        y_true, y_pred_proba, num_classes, class_names,
+        save_path=os.path.join(output_dir, f'roc_curves_{model_name}.png')
+    )
     
     # 3. Precision-Recall Curves
     print("Generating Precision-Recall curves...")
-    plot_precision_recall_curves(y_true, y_pred_proba, num_classes, class_names,
-                                save_path=os.path.join(output_dir, 'pr_curves.png'))
+    plot_precision_recall_curves(
+        y_true, y_pred_proba, num_classes, class_names,
+        save_path=os.path.join(output_dir, f'pr_curves_{model_name}.png')
+    )
     
     # 4. Prediction Distributions
     print("Generating prediction distributions...")
-    plot_prediction_distributions(y_true, y_pred_proba, num_classes, class_names,
-                                save_path=os.path.join(output_dir, 'prediction_distributions.png'))
+    plot_prediction_distributions(
+        y_true, y_pred_proba, num_classes, class_names,
+        save_path=os.path.join(output_dir, f'prediction_distributions_{model_name}.png')
+    )
     
     # 5. Class Performance Summary
     print("Generating performance summary...")
-    df_metrics = plot_class_performance_summary(y_true, y_pred, y_pred_proba, class_names,
-                                               save_path=os.path.join(output_dir, 'class_performance.png'))
+    df_metrics = plot_class_performance_summary(
+        y_true, y_pred, y_pred_proba, class_names,
+        save_path=os.path.join(output_dir, f'class_performance_{model_name}.png')
+    )
     
     # --- PRINT DETAILED RESULTS ---
     print("\n" + "="*50)
@@ -334,7 +346,7 @@ if __name__ == '__main__':
     print(cm)
     
     # Save detailed results to CSV
-    df_metrics.to_csv(os.path.join(output_dir, 'detailed_metrics.csv'), index=False)
+    df_metrics.to_csv(os.path.join(output_dir, f'detailed_metrics_{model_name}.csv'), index=False)
     
     # Save predictions
     results_df = pd.DataFrame({
@@ -342,14 +354,14 @@ if __name__ == '__main__':
         'predicted_label': y_pred,
         **{f'prob_{class_names[i]}': y_pred_proba[:, i] for i in range(num_classes)}
     })
-    results_df.to_csv(os.path.join(output_dir, 'predictions.csv'), index=False)
+    results_df.to_csv(os.path.join(output_dir, f'predictions_{model_name}.csv'), index=False)
     
     print(f"\nAll results saved to: {output_dir}")
     print("Generated files:")
-    print("- confusion_matrix.png")
-    print("- roc_curves.png") 
-    print("- pr_curves.png")
-    print("- prediction_distributions.png")
-    print("- class_performance.png")
-    print("- detailed_metrics.csv")
-    print("- predictions.csv")
+    print(f"- confusion_matrix_{model_name}.png")
+    print(f"- roc_curves_{model_name}.png")
+    print(f"- pr_curves_{model_name}.png")
+    print(f"- prediction_distributions_{model_name}.png")
+    print(f"- class_performance_{model_name}.png")
+    print(f"- detailed_metrics_{model_name}.csv")
+    print(f"- predictions_{model_name}.csv")
