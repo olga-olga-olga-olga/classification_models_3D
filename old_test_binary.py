@@ -7,6 +7,7 @@ from keras import backend as K
 import tensorflow as tf
 from datagenerator import datagen
 from sklearn.metrics import classification_report, roc_auc_score, roc_curve, confusion_matrix, precision_recall_curve
+from glob import glob
 
 def focal_loss(alpha=0.75, gamma=2.0):
     def loss(y_true, y_pred):
@@ -29,14 +30,15 @@ def binary_focal_loss(gamma=2., alpha=0.25):
 
 
 # UPDATE THESE PATHS
-model_path = '/home/radv/ofilipowicz/my-scratch/all_the_runs_m2/models/resnet34-0.0936-22.keras'
-data_path = '/data/share/IMAGO/400_cases/IMAGO_501/bids/IMAGO_first_release/derivatives - registered/'
-excel_path = '/home/radv/ofilipowicz/my-scratch/datasetlabels/Clinical_data_1st_release.xlsx'
+# model_path = '/home/radv/ofilipowicz/my-scratch/olga/densenet121_2-0.0546-12.keras'
+model_path = '/home/radv/ofilipowicz/my-scratch/all_the_runs_m2/models/resnet34-0.0788-24.keras'
+data_path = '/data/radv/radG/RAD/users/i.wamelink/AI_benchmark/AI_benchmark_datasets/temp/609_3D-DD-Res-U-Net_Osman/testing/images_t1_t2_fl/'
+excel_path = '/home/radv/ofilipowicz/my-scratch/olga/IMAGO_idh.xlsx'
 
 # Load data
 df = pd.read_excel(excel_path)
-test_files = [f'{data_path}/{pid}.npy' for pid in df['PatientID']]  # Change column name
-test_labels = df['IDH'].tolist()  # Change to your label column (0/1)
+test_files = [f'{data_path}/{pid}.npy' for pid in df['Pseudo']]  # Change column name
+test_labels = df['idh'].tolist()  # Change to your label column (0/1)
 
 # Filter existing files
 existing_files = [f for f in test_files if os.path.exists(f)]
@@ -45,7 +47,7 @@ existing_labels = [test_labels[i] for i, f in enumerate(test_files) if os.path.e
 print(f"Testing {len(existing_files)} files")
 
 # Load model and test
-model = load_model(model_path, custom_objects={'focal_loss': binary_focal_loss()})
+model = load_model(model_path, compile=False)
 test_gen = datagen(existing_files, existing_labels, batch_size=1)
 
 predictions = model.predict(test_gen, steps=len(existing_files))
@@ -127,8 +129,28 @@ ax4.set_ylabel('Count')
 ax4.set_title('Prediction Distribution')
 ax4.legend()
 
+# Get model name without extension for plot filename
+model_name = os.path.splitext(os.path.basename(model_path))[0]
+plot_path = f'/home/radv/ofilipowicz/my-scratch/test_results_plots_{model_name}.png'
+
 plt.tight_layout()
-plt.savefig('/home/radv/ofilipowicz/my-scratch/test_results_plots.png', dpi=300, bbox_inches='tight')
+plt.savefig(plot_path, dpi=300, bbox_inches='tight')
 plt.show()
 
-print(f"\nPlots saved to: /home/radv/ofilipowicz/my-scratch/test_results_plots.png")
+print(f"\nPlots saved to: {plot_path}")
+
+# Save metrics to a text file with the model name
+metrics_path = f'/home/radv/ofilipowicz/my-scratch/test_results_metrics_{model_name}.txt'
+with open(metrics_path, 'w') as f:
+    f.write(f"Results on {len(existing_labels)} samples:\n")
+    f.write(f"Accuracy: {accuracy:.3f}\n")
+    f.write(f"AUC: {auc:.3f}\n")
+    f.write(f"Sensitivity (TPR): {sensitivity:.3f}\n")
+    f.write(f"Specificity (TNR): {specificity:.3f}\n")
+    f.write(f"PPV (Precision): {ppv:.3f}\n")
+    f.write(f"NPV: {npv:.3f}\n")
+    f.write(f"FPR: {fp/(fp+tn):.3f}\n")
+    f.write(f"FNR: {fn/(fn+tp):.3f}\n\n")
+    f.write(classification_report(existing_labels, pred_binary, target_names=['IDH-wildtype', 'IDH-mutant']))
+
+print(f"Metrics saved to: {metrics_path}")

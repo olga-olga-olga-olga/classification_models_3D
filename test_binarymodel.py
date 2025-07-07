@@ -129,9 +129,9 @@ def find_nifti_files(nifti_data_dir, patient_ids):
 def main():
     # UPDATE THESE PATHS
     model_path = '/home/radv/ofilipowicz/my-scratch/all_the_runs_m2/models/resnet34-0.0936-22.keras'
-    nifti_data_dir = '/path/to/your/nifti/files/'  # Directory containing NIfTI files (BIDS root)
+    nifti_data_dir = '/data/share/IMAGO/400_cases/IMAGO_501/bids/IMAGO_first_release/derivatives - registered/'
     excel_path = '/home/radv/ofilipowicz/my-scratch/datasetlabels/Clinical_data_1st_release.xlsx'
-    converted_npy_dir = '/tmp/converted_npy_files/'  # Temporary directory for converted files
+    converted_npy_dir = '/home/radv/ofilipowicz/tmp/nifti_temp/'  # Temporary directory for converted files
     
     # Load data
     df = pd.read_excel(excel_path)
