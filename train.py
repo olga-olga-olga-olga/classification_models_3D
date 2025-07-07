@@ -52,8 +52,7 @@ def get_output(patient):
         IDH = patients_egd.who_idh_mutation_status[patients_egd.Subject == patient]
         return IDH.values[0]
 
-train_output = [get_output(patient) for patient in train_patients]
-val_output = [get_output(patient) for patient in val_patients]
+
 
 # Filter out missing files
 train_patients = [p for p in train_patients if os.path.exists(p)]
@@ -118,13 +117,13 @@ callbacks = [
     EarlyStopping(monitor='val_loss', patience=patience, verbose=0, mode='min'),
 ]
 
-train_gen = datagen(train_patients, train_output, batch_size=batch_size)
-train_val = datagen(val_patients, val_output, batch_size=batch_size)
+train_gen = datagen(train_patients, train_output, batch_size=batch_size, shuffle=True, augment=True)
+val_gen = datagen(val_patients, val_output, batch_size=batch_size, shuffle=False, augment=False)
 
 history = model.fit(
     train_gen,
     epochs=epochs, 
-    validation_data=train_val,
+    validation_data=val_gen,
     verbose=1,
     initial_epoch=0,
     callbacks=callbacks

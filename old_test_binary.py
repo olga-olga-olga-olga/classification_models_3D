@@ -9,27 +9,8 @@ from datagenerator import datagen
 from sklearn.metrics import classification_report, roc_auc_score, roc_curve, confusion_matrix, precision_recall_curve
 from glob import glob
 
-def focal_loss(alpha=0.75, gamma=2.0):
-    def loss(y_true, y_pred):
-        y_pred = tf.clip_by_value(y_pred, K.epsilon(), 1.0 - K.epsilon())  # avoid log(0)
-        pt = tf.where(tf.equal(y_true, 1), y_pred, 1 - y_pred)
-        alpha_factor = tf.where(tf.equal(y_true, 1), alpha, 1 - alpha)
-        focal_weight = alpha_factor * tf.pow(1. - pt, gamma)
-        return -K.mean(focal_weight * tf.math.log(pt))
-    return loss
 
-def binary_focal_loss(gamma=2., alpha=0.25):
-    def focal_loss(y_true, y_pred):
-        y_true = tf.cast(y_true, tf.float32)
-        y_pred = tf.clip_by_value(y_pred, K.epsilon(), 1. - K.epsilon())
-        loss = -alpha * y_true * tf.pow(1 - y_pred, gamma) * tf.math.log(y_pred) \
-               - (1 - alpha) * (1 - y_true) * tf.pow(y_pred, gamma) * tf.math.log(1 - y_pred)
-        return tf.reduce_mean(loss)
-    return focal_loss
-
-
-
-# UPDATE THESE PATHS
+# PATHS
 # model_path = '/home/radv/ofilipowicz/my-scratch/olga/densenet121_2-0.0546-12.keras'
 model_path = '/home/radv/ofilipowicz/my-scratch/all_the_runs_m2/models/resnet34-0.0788-24.keras'
 data_path = '/data/radv/radG/RAD/users/i.wamelink/AI_benchmark/AI_benchmark_datasets/temp/609_3D-DD-Res-U-Net_Osman/testing/images_t1_t2_fl/'
