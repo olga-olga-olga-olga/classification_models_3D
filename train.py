@@ -67,7 +67,7 @@ print(f"Training with {len(train_patients)} train files, {len(val_patients)} val
 batch_size = 1
 num_classes = 1
 patience = 20
-learning_rate = 0.0001
+learning_rate = 0.00001
 model_type = 'resnet34'
 epochs = 50
 
@@ -84,7 +84,7 @@ model = Model(inputs=model.inputs, outputs=x)
 print(model.summary())
 optim = Adam(learning_rate=learning_rate)
 optim = LossScaleOptimizer(optim)
-def binary_focal_loss(gamma=2., alpha=0.25):
+def binary_focal_loss(gamma=1.5, alpha=0.25):
     def focal_loss(y_true, y_pred):
         y_true = tf.cast(y_true, tf.float32)
         y_pred = tf.clip_by_value(y_pred, K.epsilon(), 1. - K.epsilon())
@@ -117,13 +117,13 @@ callbacks = [
     EarlyStopping(monitor='val_loss', patience=patience, verbose=0, mode='min'),
 ]
 
-train_gen = datagen(train_patients, train_output, batch_size=batch_size, shuffle=True, augment=True)
-val_gen = datagen(val_patients, val_output, batch_size=batch_size, shuffle=False, augment=False)
+train_gen = datagen(train_patients, train_output, batch_size=batch_size)
+train_val = datagen(val_patients, val_output, batch_size=batch_size)
 
 history = model.fit(
     train_gen,
     epochs=epochs, 
-    validation_data=val_gen,
+    validation_data=train_val,
     verbose=1,
     initial_epoch=0,
     callbacks=callbacks

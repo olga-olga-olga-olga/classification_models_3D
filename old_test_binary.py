@@ -10,9 +10,10 @@ from sklearn.metrics import classification_report, roc_auc_score, roc_curve, con
 from glob import glob
 
 
+
 # PATHS
-# model_path = '/home/radv/ofilipowicz/my-scratch/olga/densenet121_2-0.0546-12.keras'
-model_path = '/home/radv/ofilipowicz/my-scratch/all_the_runs_m2/models/resnet34-0.0788-24.keras'
+#model_path = '/home/radv/ofilipowicz/my-scratch/olga/densenet121_2-0.0546-12.keras'
+model_path = '/home/radv/ofilipowicz/my-scratch/all_the_runs_m2/models_1cat/run_20250707_110739/resnet34-0.1029-05.keras'
 data_path = '/data/radv/radG/RAD/users/i.wamelink/AI_benchmark/AI_benchmark_datasets/temp/609_3D-DD-Res-U-Net_Osman/testing/images_t1_t2_fl/'
 excel_path = '/home/radv/ofilipowicz/my-scratch/olga/IMAGO_idh.xlsx'
 
@@ -29,7 +30,7 @@ print(f"Testing {len(existing_files)} files")
 
 # Load model and test
 model = load_model(model_path, compile=False)
-test_gen = datagen(existing_files, existing_labels, batch_size=1)
+test_gen = datagen(existing_files, existing_labels, batch_size=1, shuffle=False, augment=False)
 
 predictions = model.predict(test_gen, steps=len(existing_files))
 pred_binary = (predictions > 0.5).astype(int).flatten()

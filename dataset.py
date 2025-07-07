@@ -130,22 +130,23 @@ class Dataset3Handler(BaseDatasetHandler):
         }
 
 class Datasets:
-    def __init__(self, target_size=(96, 96, 96), target_spacing=(1.0, 1.0, 1.0)):
+    def __init__(self, target_size=(96, 96, 96), target_spacing=(1.0, 1.0, 1.0), num_channels=3):
         """
         Initialize dataset handler
         
         Args:
             target_size: Target spatial dimensions (depth, height, width)
             target_spacing: Target voxel spacing in mm
+            num_channels: Number of MRI sequences/channels to use
         
         Note: Preprocessing transforms are defined here but applied in training
         """
         self.datasets = []
         self.target_size = target_size
         self.target_spacing = target_spacing
+        self.num_channels = num_channels
 
         # Define preprocessing transforms (these will be applied in training, not here)
-        # This is just for reference/documentation
         self.preprocessing_transforms = torchio.Compose([
             torchio.RescaleIntensity((0.05, 99.5)),
             torchio.Resample(target=target_spacing),
@@ -154,6 +155,7 @@ class Datasets:
 
         print(f"Dataset configured for target size: {target_size}")
         print(f"Target spacing: {target_spacing} mm")
+        print(f"Number of channels: {num_channels}")
         print("Note: Images will be preprocessed during training, not at loading time")
 
     def add_dataset(self, dataset_path, excel_path, handler_class):

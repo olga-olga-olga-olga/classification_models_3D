@@ -85,7 +85,7 @@ def categorical_focal_loss(gamma=2., alpha=None):
 
 def train_model_example():
     use_weights = 'imagenet'
-    shape_size = (240, 240, 189, 3)
+    shape_size = (240, 240, 189, 3)  # <-- Set your desired shape here
     backbone = 'resnet18'
     num_classes = 3
     batch_size_train = 1
@@ -97,32 +97,37 @@ def train_model_example():
     validation_steps = 20
     dropout_val = 0.3
 
+    # --- SHAPE VARIABLES ---
+    target_size = (240, 240, 189)    # <-- Set your desired target size here
+    num_channels = shape_size[3]
+    target_spacing = (1.0, 1.0, 1.0)
 
     data_path_1 = "/data/share/IMAGO/SF/"
     excel_path_1 =  "/home/radv/ofilipowicz/my-scratch/datasetlabels/UCSF-PDGM_clinical_data_adjusted.xls"
-
     data_path_2 = "/data/share/IMAGO/400_cases/IMAGO_501/bids/IMAGO_first_release/derivatives - registered/"
     excel_path_2 = "/home/radv/ofilipowicz/my-scratch/datasetlabels/Clinical_data_1st_release.xls"
-
     data_path_3 = "/data/share/IMAGO/Rotterdam/"
     excel_path_3 = "/home/radv/ofilipowicz/my-scratch/datasetlabels/Rotterdam_clinical_data.xls"
 
-
-
     # Initialize datasets
-    datasets = Datasets(target_size=(240, 240, 189), target_spacing=(1.0, 1.0, 1.0))
+    datasets = Datasets(
+        target_size=target_size,
+        target_spacing=target_spacing,
+        num_channels=num_channels
+    )
     datasets.add_dataset(data_path_1, excel_path_1, Dataset1Handler)
     datasets.add_dataset(data_path_2, excel_path_2, Dataset2Handler)
     datasets.add_dataset(data_path_3, excel_path_3, Dataset3Handler)
-    
     
     # Create batch generators (replaces gen_random_volume)
     gen_train, gen_valid, class_weights = create_batch_generators(
         datasets,
         batch_size_train=batch_size_train,
-        batch_size_valid=batch_size_valid
+        batch_size_valid=batch_size_valid,
+        target_size=target_size,
+        target_spacing=target_spacing,
+        num_channels=num_channels
     )
-    
     # Get model and dummy preprocess function
     modelPoint, _ = Classifiers.get(backbone)
     preprocess_input = get_preprocess_input_dummy()
