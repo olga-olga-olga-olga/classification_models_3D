@@ -85,7 +85,7 @@ def categorical_focal_loss(gamma=2., alpha=None):
 
 def train_model_example():
     use_weights = 'imagenet'
-    shape_size = (240, 240, 189, 3)  # <-- Set your desired shape here
+    shape_size = (240, 240, 189, 3)
     backbone = 'resnet18'
     num_classes = 3
     batch_size_train = 1
@@ -98,7 +98,7 @@ def train_model_example():
     dropout_val = 0.3
 
     # --- SHAPE VARIABLES ---
-    target_size = (240, 240, 189)    # <-- Set your desired target size here
+    target_size = shape_size[:3]
     num_channels = shape_size[3]
     target_spacing = (1.0, 1.0, 1.0)
 

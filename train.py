@@ -91,7 +91,7 @@ def focal_loss(alpha=0.85, gamma=2.1):
         pt = tf.where(tf.equal(y_true, 1), y_pred, 1 - y_pred)
         alpha_factor = tf.where(tf.equal(y_true, 1), alpha, 1 - alpha)
         focal_weight = alpha_factor * tf.pow(1. - pt, gamma)
-        return -K.mean(focal_weight * tf.math.log(pt))
+        return -tf.reduce_mean(focal_weight * tf.math.log(pt))
     return loss
 
 loss_to_use = focal_loss(gamma=2.0, alpha=0.75)

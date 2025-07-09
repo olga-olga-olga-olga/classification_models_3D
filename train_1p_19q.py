@@ -28,7 +28,7 @@ patient_loc_egd = '/data/radv/radG/RAD/users/i.wamelink/AI_benchmark/AI_benchmar
 patients_sf = pd.read_excel('/home/radv/ofilipowicz/my-scratch/datasetlabels/UCSF-PDGM_clinical_data.xlsx', engine='openpyxl')
 patients_sf['ID'] = patients_sf['ID'].str.replace(r'(\d+)$', lambda m: f"{int(m.group(1)):04}", regex=True)
 patients_sf = patients_sf[~patients_sf.ID.isna()]
-patients_egd = pd.read_csv('/scratch/radv/ijwamelink/classification/Genetic_data.csv')
+patients_egd = pd.read_excel('/home/radv/ofilipowicz/my-scratch/datasetlabels/Rotterdam_clinical_data.xls')
 patients_egd = patients_egd[~patients_egd.Subject.isna()]
 
 
@@ -55,8 +55,42 @@ def get_output(patient):
         else:
             return 0
     else:
-        codeletion = patients_egd.who_1p19q_codeletion[patients_egd.Subject == patient]
-        return codeletion.values[0]
+        row = patients_egd[patients_egd.Subject == patient]
+        if row.empty:
+            return None
+        codeletion = row['who_1p19q_codeletion'].values[0]
+        if codeletion in [0, 1]:
+            return codeletion
+        elif codeletion == -1:
+            # Check the 'type' column
+            type_val = row['type'].values[0]
+            if type_val == 2:
+                return 0  # treat as not codeleted
+            else:
+                return None  # exclude this patient
+        else:
+            return None  # for any unexpected value
+    
+
+
+def get_output(patient):
+    patient = patient.split('/')[-1].split('.')[0]
+    if 'UCSF' in patient:
+        IDH = patients_sf.IDH[patients_sf.ID == patient]
+        if IDH.values[0] == 'wildtype':
+            return 0
+        else:
+            return 1
+    else:
+        IDH = patients_egd.who_idh_mutation_status[patients_egd.Subject == patient]
+        return IDH.values[0]
+
+
+
+
+
+
+
 
 # Filter out missing files
 train_patients = [p for p in train_patients if os.path.exists(p)]
@@ -100,7 +134,7 @@ def focal_loss(alpha=0.85, gamma=2.1):
         pt = tf.where(tf.equal(y_true, 1), y_pred, 1 - y_pred)
         alpha_factor = tf.where(tf.equal(y_true, 1), alpha, 1 - alpha)
         focal_weight = alpha_factor * tf.pow(1. - pt, gamma)
-        return -K.mean(focal_weight * tf.math.log(pt))
+        return -tf.reduce_mean(focal_weight * tf.math.log(pt))
     return loss
 
 loss_to_use = focal_loss(gamma=2.0, alpha=0.75)
@@ -108,7 +142,7 @@ loss_to_use = focal_loss(gamma=2.0, alpha=0.75)
 model.compile(optimizer=optim, loss=loss_to_use, metrics=['acc', ], jit_compile=True)
 
 # Change all model/log save paths to your directory
-save_dir = '/home/radv/ofilipowicz/my-scratch/all_the_runs_m2/models_1cat/'
+save_dir = '/home/radv/ofilipowicz/my-scratch/all_the_runs_m2/models_1cat_1q19p/'
 
 # Create a timestamped subdirectory for this run
 timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")

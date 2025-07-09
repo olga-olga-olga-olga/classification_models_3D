@@ -228,7 +228,7 @@ def plot_class_performance_summary(y_true, y_pred, y_pred_proba, class_names, sa
 
 if __name__ == '__main__':
     # --- CONFIGURE THESE PATHS ---
-    model_path = '/home/radv/ofilipowicz/my-scratch/all_the_runs_m2/resnet18-0.1042-17.keras'  
+    model_path = '/home/radv/ofilipowicz/my-scratch/all_the_runs_m2/models_3cat/run_20250707_190555/resnet18-0.6492-13.keras'  
     data_path = "/data/share/IMAGO/Rotterdam/"          
     excel_path = "/home/radv/ofilipowicz/my-scratch/datasetlabels/Rotterdam_clinical_data.xls"   
     output_dir = '/home/radv/ofilipowicz/my-scratch/test_results/'  # Directory to save plots
@@ -236,25 +236,30 @@ if __name__ == '__main__':
     # Extract model name (without extension) for file naming
     model_name = os.path.splitext(os.path.basename(model_path))[0]
 
-    num_classes = 3
-    shape_size = (96, 96, 96, 3)
-    steps = 100  # Set to number of batches in your test set
-    batch_size = 1  
-    class_names = ['Astrocytoma', 'Oligodendroglioma', 'GBM']  # Update with your class names
     
     # Create output directory
     os.makedirs(output_dir, exist_ok=True)
 
     # --- PREPARE DATASET AND GENERATOR ---
-    datasets = Datasets(target_size=(96, 96, 96), target_spacing=(1.0, 1.0, 1.0))
+    datasets = Datasets(target_size=(240, 240, 189), target_spacing=(1.0, 1.0, 1.0))
     # Use the appropriate handler for your external data
     datasets.add_dataset(data_path, excel_path, Dataset3Handler)  # Change handler if needed
 
-    # Only need the validation generator for testing
+    num_classes = 3
+    shape_size = (240, 240, 189, 3)
+    batch_size = 1  
+    class_names = ['Astrocytoma', 'Oligodendroglioma', 'GBM']  # Update with your class names
+    steps = 750
+    
+
+
+    # Create the generator once
     _, gen_test, _ = create_batch_generators(
         datasets,
         batch_size_train=batch_size,
-        batch_size_valid=batch_size
+        batch_size_valid=batch_size,
+        target_size=(240, 240, 189),       
+        num_channels=3
     )
 
     # --- LOAD MODEL WITH CUSTOM OBJECTS ---
@@ -274,12 +279,13 @@ if __name__ == '__main__':
 
     # --- GET PREDICTIONS AND TRUE LABELS ---
     # Reset generator
-    gen_test_pred = create_batch_generators(
+    _, gen_test_pred, _ = create_batch_generators(
         datasets,
         batch_size_train=batch_size,
-        batch_size_valid=batch_size
-    )[1]
-    
+        batch_size_valid=batch_size,
+        target_size=(240, 240, 189),       
+        num_channels=3
+    )
     y_true, y_pred_proba = extract_true_labels_and_predictions(gen_test_pred, model, steps, num_classes)
     y_pred = np.argmax(y_pred_proba, axis=1)
 
