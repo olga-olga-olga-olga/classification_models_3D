@@ -29,7 +29,7 @@ patients_sf = pd.read_excel('/home/radv/ofilipowicz/my-scratch/datasetlabels/UCS
 patients_sf['ID'] = patients_sf['ID'].str.replace(r'(\d+)$', lambda m: f"{int(m.group(1)):04}", regex=True)
 patients_sf = patients_sf[~patients_sf.ID.isna()]
 patients_egd = pd.read_csv('/scratch/radv/ijwamelink/classification/Genetic_data.csv')
-patients_egd = patients_egd[(patients_egd.who_idh_mutation_status != -1) & (~patients_egd.Subject.isna())]
+patients_egd = patients_egd[~patients_egd.Subject.isna()]
 
 
 patients = list(patients_sf.ID) + list(patients_egd.Subject)
@@ -43,24 +43,33 @@ val_patients = [f'{patient_loc_sf}/{patient}.npy' if 'UCSF' in patient else f'{p
 def get_output(patient):
     patient = patient.split('/')[-1].split('.')[0]
     if 'UCSF' in patient:
-        IDH = patients_sf.IDH[patients_sf.ID == patient]
-        if IDH.values[0] == 'wildtype':
-            return 0
-        else:
+        tumor_type = patients_sf.loc[patients_sf.ID == patient, 'Final pathologic diagnosis (WHO 2021)']
+        if not tumor_type.empty and 'glioblastoma' in str(tumor_type.values[0]).lower():
+            return 0  # glioblastoma is always not codeleted
+        codeletion = patients_sf.loc[patients_sf.ID == patient, '1p/19q']
+        # Exclude if 1p/19q is missing or empty
+        if codeletion.isna().values[0] or codeletion.values[0] == '':
+            return None
+        if codeletion.values[0] == 'relative co-deleted':
             return 1
+        else:
+            return 0
     else:
-        IDH = patients_egd.who_idh_mutation_status[patients_egd.Subject == patient]
-        return IDH.values[0]
-
-
+        codeletion = patients_egd.who_1p19q_codeletion[patients_egd.Subject == patient]
+        return codeletion.values[0]
 
 # Filter out missing files
 train_patients = [p for p in train_patients if os.path.exists(p)]
 val_patients = [p for p in val_patients if os.path.exists(p)]
 
-# Update labels to match filtered files
-train_output = [get_output(patient) for patient in train_patients]
-val_output = [get_output(patient) for patient in val_patients]
+# Update labels to match filtered files and exclude None labels
+train_pairs = [(p, get_output(p)) for p in train_patients]
+train_pairs = [(p, y) for p, y in train_pairs if y is not None]
+train_patients, train_output = zip(*train_pairs) if train_pairs else ([], [])
+
+val_pairs = [(p, get_output(p)) for p in val_patients]
+val_pairs = [(p, y) for p, y in val_pairs if y is not None]
+val_patients, val_output = zip(*val_pairs) if val_pairs else ([], [])
 
 print(f"Training with {len(train_patients)} train files, {len(val_patients)} val files")
 

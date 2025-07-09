@@ -13,7 +13,7 @@ from glob import glob
 
 # PATHS
 #model_path = '/home/radv/ofilipowicz/my-scratch/olga/densenet121_2-0.0546-12.keras'
-model_path = '/home/radv/ofilipowicz/my-scratch/all_the_runs_m2/models_1cat/run_20250707_110739/resnet34-0.1029-05.keras'
+model_path = '/home/radv/ofilipowicz/my-scratch/all_the_runs_m2/models_1cat/run_20250707_230510/vgg19-0.0559-11.keras'
 data_path = '/data/radv/radG/RAD/users/i.wamelink/AI_benchmark/AI_benchmark_datasets/temp/609_3D-DD-Res-U-Net_Osman/testing/images_t1_t2_fl/'
 excel_path = '/home/radv/ofilipowicz/my-scratch/olga/IMAGO_idh.xlsx'
 
@@ -113,7 +113,7 @@ ax4.legend()
 
 # Get model name without extension for plot filename
 model_name = os.path.splitext(os.path.basename(model_path))[0]
-plot_path = f'/home/radv/ofilipowicz/my-scratch/test_results_plots_{model_name}.png'
+plot_path = f'/home/radv/ofilipowicz/my-scratch/test_results/test_results_plots_{model_name}.png'
 
 plt.tight_layout()
 plt.savefig(plot_path, dpi=300, bbox_inches='tight')
@@ -122,7 +122,7 @@ plt.show()
 print(f"\nPlots saved to: {plot_path}")
 
 # Save metrics to a text file with the model name
-metrics_path = f'/home/radv/ofilipowicz/my-scratch/test_results_metrics_{model_name}.txt'
+metrics_path = f'/home/radv/ofilipowicz/my-scratch/test_results/test_results_metrics_{model_name}.txt'
 with open(metrics_path, 'w') as f:
     f.write(f"Results on {len(existing_labels)} samples:\n")
     f.write(f"Accuracy: {accuracy:.3f}\n")
