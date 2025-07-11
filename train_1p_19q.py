@@ -119,7 +119,7 @@ model = ResNet18(input_shape=(240, 240, 160, 3), classes=num_classes, weights='i
 
 x = model.layers[-1].output
 x = GlobalAveragePooling3D()(x)
-x = Dropout(0.3)(x)
+x = Dropout(0.05)(x)
 x = Dense(num_classes, name='prediction')(x)
 x = Activation('sigmoid')(x)
 model = Model(inputs=model.inputs, outputs=x)
@@ -128,7 +128,7 @@ print(model.summary())
 optim = Adam(learning_rate=learning_rate)
 optim = LossScaleOptimizer(optim)
 
-def focal_loss(alpha=0.85, gamma=2.1):
+def focal_loss(alpha=1.0, gamma=2.3):
     def loss(y_true, y_pred):
         y_pred = tf.clip_by_value(y_pred, K.epsilon(), 1.0 - K.epsilon())  # avoid log(0)
         pt = tf.where(tf.equal(y_true, 1), y_pred, 1 - y_pred)

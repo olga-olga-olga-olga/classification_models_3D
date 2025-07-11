@@ -86,16 +86,16 @@ def categorical_focal_loss(gamma=2., alpha=None):
 def train_model_example():
     use_weights = 'imagenet'
     shape_size = (240, 240, 189, 3)
-    backbone = 'resnet18'
+    backbone = 'densenet169'  
     num_classes = 3
     batch_size_train = 1
     batch_size_valid = 1
-    learning_rate = 0.0001
-    patience = 15
+    learning_rate = 0.00005
+    patience = 35
     epochs = 50
     steps_per_epoch = 100
     validation_steps = 20
-    dropout_val = 0.3
+    dropout_val = 0.2
 
     # --- SHAPE VARIABLES ---
     target_size = shape_size[:3]
@@ -148,9 +148,9 @@ def train_model_example():
     print(get_model_memory_usage(batch_size_train, model))
     optim = Adam(learning_rate=learning_rate)
 
-    alpha_weights = [1.0, 3.0, 0.6]  
+    alpha_weights = [1.0, 1.8, 0.6]  
 
-    loss_to_use = categorical_focal_loss(gamma=2.0, alpha=alpha_weights)
+    loss_to_use = categorical_focal_loss(gamma=2.5, alpha=alpha_weights)
     # loss_to_use ='categorical_crossentropy' 
     model.compile(
         optimizer=optim,
