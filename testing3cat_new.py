@@ -15,33 +15,35 @@ from dataset import Datasets, Dataset3Handler
 # Only include custom functions if you need to calculate loss/metrics during loading
 # For predictions only, these aren't needed!
 
-def get_predictions_and_labels(generator, model):
-    """Get predictions and true labels from entire dataset - ONE TIME ONLY"""
-    print("Getting predictions and true labels from entire dataset...")
+def get_predictions_and_labels(generator, model, max_samples=774):
+    """Get predictions and true labels with sample limit"""
+    print(f"Getting predictions from {max_samples} samples...")
     
     all_true_labels = []
     all_predictions = []
     batch_count = 0
     
-    try:
-        while True:
-            batch = next(generator)
-            X_batch, y_batch = batch
-            
-            # Get predictions
-            pred_batch = model.predict(X_batch, verbose=0)
-            
-            # Store true labels (convert from one-hot to class indices)
-            true_batch = np.argmax(y_batch, axis=1)
-            all_true_labels.extend(true_batch)
-            all_predictions.extend(pred_batch)
-            
-            batch_count += 1
-            if batch_count % 50 == 0:
-                print(f"Processed {batch_count} batches, {len(all_true_labels)} samples so far...")
-                
-    except StopIteration:
-        print(f"Finished! Processed {batch_count} batches, {len(all_true_labels)} total samples")
+    while len(all_true_labels) < max_samples:
+        batch = next(generator)
+        X_batch, y_batch = batch
+        
+        # Get predictions
+        pred_batch = model.predict(X_batch, verbose=0)
+        
+        # Store true labels (convert from one-hot to class indices)
+        true_batch = np.argmax(y_batch, axis=1)
+        all_true_labels.extend(true_batch)
+        all_predictions.extend(pred_batch)
+        
+        batch_count += 1
+        if batch_count % 50 == 0:
+            print(f"Processed {batch_count} batches, {len(all_true_labels)} samples")
+    
+    # Trim to exact size
+    all_true_labels = all_true_labels[:max_samples]
+    all_predictions = all_predictions[:max_samples]
+    
+    print(f"Finished! {len(all_true_labels)} samples processed")
     
     y_true = np.array(all_true_labels)
     y_pred_proba = np.array(all_predictions)
@@ -158,8 +160,8 @@ if __name__ == '__main__':
         model = load_model(model_path, custom_objects=custom_objects)
         print("Model loaded with custom objects")
     
-    # --- GET PREDICTIONS FROM ENTIRE DATASET (ONCE) ---
-    y_true, y_pred, y_pred_proba = get_predictions_and_labels(gen_test, model)
+    # --- GET PREDICTIONS FROM EXACTLY 774 SAMPLES ---
+    y_true, y_pred, y_pred_proba = get_predictions_and_labels(gen_test, model, max_samples=774)
     
     # --- CALCULATE ALL METRICS FROM SAME DATA ---
     calculate_all_metrics(y_true, y_pred, y_pred_proba, class_names)
