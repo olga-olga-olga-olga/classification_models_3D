@@ -15,27 +15,33 @@ from dataset import Datasets, Dataset3Handler
 # Only include custom functions if you need to calculate loss/metrics during loading
 # For predictions only, these aren't needed!
 
-def get_predictions_and_labels(generator, model, steps):
-    """Get predictions and true labels from generator - ONE TIME ONLY"""
-    print("Getting predictions and true labels...")
+def get_predictions_and_labels(generator, model):
+    """Get predictions and true labels from entire dataset - ONE TIME ONLY"""
+    print("Getting predictions and true labels from entire dataset...")
     
     all_true_labels = []
     all_predictions = []
+    batch_count = 0
     
-    for i in range(steps):
-        batch = next(generator)
-        X_batch, y_batch = batch
-        
-        # Get predictions
-        pred_batch = model.predict(X_batch, verbose=0)
-        
-        # Store true labels (convert from one-hot to class indices)
-        true_batch = np.argmax(y_batch, axis=1)
-        all_true_labels.extend(true_batch)
-        all_predictions.extend(pred_batch)
-        
-        if (i + 1) % 50 == 0:
-            print(f"Processed {i + 1}/{steps} batches")
+    try:
+        while True:
+            batch = next(generator)
+            X_batch, y_batch = batch
+            
+            # Get predictions
+            pred_batch = model.predict(X_batch, verbose=0)
+            
+            # Store true labels (convert from one-hot to class indices)
+            true_batch = np.argmax(y_batch, axis=1)
+            all_true_labels.extend(true_batch)
+            all_predictions.extend(pred_batch)
+            
+            batch_count += 1
+            if batch_count % 50 == 0:
+                print(f"Processed {batch_count} batches, {len(all_true_labels)} samples so far...")
+                
+    except StopIteration:
+        print(f"Finished! Processed {batch_count} batches, {len(all_true_labels)} total samples")
     
     y_true = np.array(all_true_labels)
     y_pred_proba = np.array(all_predictions)
@@ -113,7 +119,6 @@ if __name__ == '__main__':
     
     # Parameters
     batch_size = 1
-    steps = 750
     num_classes = 3
     class_names = ['Astrocytoma', 'Oligodendroglioma', 'GBM']
     
@@ -153,8 +158,8 @@ if __name__ == '__main__':
         model = load_model(model_path, custom_objects=custom_objects)
         print("Model loaded with custom objects")
     
-    # --- GET PREDICTIONS (ONCE) ---
-    y_true, y_pred, y_pred_proba = get_predictions_and_labels(gen_test, model, steps)
+    # --- GET PREDICTIONS FROM ENTIRE DATASET (ONCE) ---
+    y_true, y_pred, y_pred_proba = get_predictions_and_labels(gen_test, model)
     
     # --- CALCULATE ALL METRICS FROM SAME DATA ---
     calculate_all_metrics(y_true, y_pred, y_pred_proba, class_names)
