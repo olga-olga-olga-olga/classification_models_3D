@@ -137,7 +137,7 @@ def focal_loss(alpha=1.0, gamma=2.3):
         return -tf.reduce_mean(focal_weight * tf.math.log(pt))
     return loss
 
-loss_to_use = focal_loss(gamma=2.0, alpha=0.75)
+loss_to_use = focal_loss(gamma=2.3, alpha=1.1)
 # loss_to_use = 'binary_crossentropy'
 model.compile(optimizer=optim, loss=loss_to_use, metrics=['acc', ], jit_compile=True)
 

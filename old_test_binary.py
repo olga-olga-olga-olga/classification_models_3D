@@ -13,7 +13,7 @@ from glob import glob
 
 # PATHS
 #model_path = '/home/radv/ofilipowicz/my-scratch/olga/densenet121_2-0.0546-12.keras'
-model_path = '/home/radv/ofilipowicz/my-scratch/all_the_runs_m2/models_1cat/run_20250711_015447/densenet169-0.4127-49.keras'
+model_path = '/home/radv/ofilipowicz/my-scratch/all_the_runs_m2/models_1cat_1q19p/run_20250711_211954/densenet169-1.8408-23.keras'
 data_path = '/data/radv/radG/RAD/users/i.wamelink/AI_benchmark/AI_benchmark_datasets/temp/609_3D-DD-Res-U-Net_Osman/testing/images_t1_t2_fl/'
 excel_path = '/home/radv/ofilipowicz/my-scratch/olga/IMAGO_idh.xlsx'
 
