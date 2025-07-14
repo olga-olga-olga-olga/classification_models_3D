@@ -191,19 +191,18 @@ def test_three_class_glioma_classification():
     Test the three-class glioma classification using the same approach as binary testing.
     """
     # PATHS - Update these to your actual model paths
-    idh_model_path = '/home/radv/ofilipowicz/my-scratch/all_the_runs_m2/models_1cat/run_YYYYMMDD_HHMMSS/densenet169-best.keras'
-    codeletion_model_path = '/home/radv/ofilipowicz/my-scratch/all_the_runs_m2/models_1cat_1q19p/run_20250711_211954/densenet169-1.8408-23.keras'
+    idh_model_path = '/home/radv/ofilipowicz/my-scratch/olga/densenet121_2-0.0546-12.keras'
+    codeletion_model_path = '/home/radv/ofilipowicz/my-scratch/all_the_runs_m2/models_1cat_1q19p/run_20250714_104621/densenet169--1.1825-10.keras'
     data_path = '/data/radv/radG/RAD/users/i.wamelink/AI_benchmark/AI_benchmark_datasets/temp/609_3D-DD-Res-U-Net_Osman/testing/images_t1_t2_fl/'
     excel_path = '/home/radv/ofilipowicz/my-scratch/datasetlabels/Clinical_data_1st_release.xlsx'
     
     # Load data
     print("Loading clinical data...")
-    df = pd.read_excel(excel_path, engine='openpyxl')
+    df_imago = pd.read_excel(excel_path, engine='openpyxl')
     
     # Filter for IMAGO dataset only
     print("Filtering for IMAGO dataset...")
-    df_imago = df[df['Dataset'] == 'IMAGO'].copy()
-    print(f"Found {len(df_imago)} IMAGO samples out of {len(df)} total samples")
+    print(f"Found {len(df_imago)} IMAGO samples")
     
     if len(df_imago) == 0:
         print("No IMAGO samples found! Check the Dataset column values.")
