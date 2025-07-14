@@ -118,10 +118,10 @@ class ThreeClassGliomaClassifier:
 
 def get_true_three_class_labels(df):
     """
-    Generate true three-class labels from the clinical data DataFrame.
+    Generate true three-class labels directly from the Tumor_type column.
     
     Args:
-        df: Clinical data DataFrame with IDH, 1p/19q, and Tumor_type columns
+        df: Clinical data DataFrame with Tumor_type column
         
     Returns:
         Array of true labels (0=Glioblastoma, 1=Oligodendroglioma, 2=Astrocytoma)
@@ -129,47 +129,26 @@ def get_true_three_class_labels(df):
     true_labels = []
 
     for _, row in df.iterrows():
-        idh_status = row.get('IDH', None)  # Assuming IDH column exists
-        codeletion_status = row.get('1p/19q', None)  # 1p/19q column
-        tumor_type = row.get('Tumor_type', None)  # Tumor type column
-
-        # Handle GBM cases first - if it's GBM, it's always not codeleted
-        if tumor_type and 'GBM' in str(tumor_type).upper():
+        tumor_type = row.get('Tumor_type', None)
+        
+        if pd.isna(tumor_type) or tumor_type == '' or tumor_type is None:
+            true_labels.append(None)  # Exclude if no tumor type
+            continue
+            
+        # Convert to string and normalize
+        tumor_type_str = str(tumor_type).upper().strip()
+        
+        # Map tumor types to classes
+        if any(keyword in tumor_type_str for keyword in ['GBM', 'GLIOBLASTOMA']):
             true_labels.append(0)  # Glioblastoma
-            continue
-
-        # Handle codeletion status
-        if pd.isna(codeletion_status) or codeletion_status == '' or codeletion_status is None:
-            # Unknown codeletion status
-            if tumor_type and 'GBM' in str(tumor_type).upper():
-                true_labels.append(0)  # GBM = Glioblastoma
-            else:
-                true_labels.append(None)  # Exclude if unknown
-            continue
-
-        # Process based on codeletion status
-        codeletion_str = str(codeletion_status).lower().strip()
-
-        if 'codeleted' in codeletion_str and 'not' not in codeletion_str:
-            # "codeleted" = Oligodendroglioma (assuming IDH mutant)
-            true_labels.append(1)
-        elif 'not codeleted' in codeletion_str or 'intact' in codeletion_str:
-            # "not codeleted" could be Glioblastoma (IDH-wt) or Astrocytoma (IDH-mut)
-            # We need IDH status to distinguish
-            if pd.isna(idh_status):
-                # If no IDH info, assume based on tumor type
-                if tumor_type and 'GBM' in str(tumor_type).upper():
-                    true_labels.append(0)  # Glioblastoma
-                else:
-                    true_labels.append(2)  # Default to Astrocytoma for IDH unknown
-            elif idh_status == 0 or str(idh_status).lower() == 'wt IDH':
-                true_labels.append(0)  # Glioblastoma
-            elif idh_status == 1 or str(idh_status).lower() == 'IDH 1 mutation':
-                true_labels.append(2)  # Astrocytoma
-            else:
-                true_labels.append(None)  # Exclude uncertain cases
+        elif any(keyword in tumor_type_str for keyword in ['OLIGODENDROGLIOMA', 'OLIGO']):
+            true_labels.append(1)  # Oligodendroglioma
+        elif any(keyword in tumor_type_str for keyword in ['ASTROCYTOMA', 'ASTRO']):
+            true_labels.append(2)  # Astrocytoma
         else:
-            true_labels.append(None)  # Exclude uncertain cases
+            # Print unknown tumor types for debugging
+            print(f"Unknown tumor type: '{tumor_type}' - excluding from analysis")
+            true_labels.append(None)  # Exclude unknown types
 
     return true_labels
 
@@ -270,6 +249,12 @@ def test_three_class_glioma_classification():
     test_files = [f'{data_path}/{pid}.npy' for pid in df_imago['Pseudo']]
 
     # Get true three-class labels for IMAGO samples only
+    print("Analyzing tumor types in dataset...")
+    
+    # First, let's see what tumor types are available
+    tumor_types = df_imago['Tumor_type'].dropna().unique()
+    print(f"Available tumor types: {tumor_types}")
+    
     true_labels = get_true_three_class_labels(df_imago)
 
     # Filter existing files and valid labels
@@ -297,12 +282,12 @@ def test_three_class_glioma_classification():
             print(f"  {class_names[i]}: {count}")
 
     # Debug: Show some examples of label assignment for IMAGO samples
-    print("\nFirst 5 IMAGO label assignments (for debugging):")
+    print("\nFirst 10 IMAGO tumor type assignments:")
     debug_labels = get_true_three_class_labels(df_imago)
-    for i in range(min(5, len(df_imago))):
+    for i in range(min(10, len(df_imago))):
         row = df_imago.iloc[i]
-        print(f"  Patient {row.get('Pseudo', 'Unknown')}: IDH={row.get('IDH', 'Missing')}, "
-              f"1p/19q='{row.get('1p/19q', 'Missing')}', Tumor_type='{row.get('Tumor_type', 'Missing')}' "
+        tumor_type = row.get('Tumor_type', 'Missing')
+        print(f"  Patient {row.get('Pseudo', 'Unknown')}: Tumor_type='{tumor_type}' "
               f"-> Label={debug_labels[i]} ({class_names[debug_labels[i]] if debug_labels[i] is not None else 'Excluded'})")
 
     # Initialize classifier
