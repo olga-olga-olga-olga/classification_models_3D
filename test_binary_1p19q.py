@@ -121,9 +121,9 @@ def get_true_three_class_labels(df):
                     true_labels.append(0)  # Glioblastoma
                 else:
                     true_labels.append(2)  # Default to Astrocytoma for IDH unknown
-            elif idh_status == 0 or str(idh_status).lower() == 'wt IDH':
+            elif idh_status == 0 or str(idh_status).lower() == 'wildtype':
                 true_labels.append(0)  # Glioblastoma
-            elif idh_status == 1 or str(idh_status).lower() == 'IDH 1 mutation':
+            elif idh_status == 1 or str(idh_status).lower() == 'mutant':
                 true_labels.append(2)  # Astrocytoma
             else:
                 true_labels.append(None)  # Exclude uncertain cases
@@ -191,29 +191,23 @@ def test_three_class_glioma_classification():
     Test the three-class glioma classification using the same approach as binary testing.
     """
     # PATHS - Update these to your actual model paths
-    idh_model_path = '/home/radv/ofilipowicz/my-scratch/olga/densenet121_2-0.0546-12.keras'
-    codeletion_model_path = '/home/radv/ofilipowicz/my-scratch/all_the_runs_m2/models_1cat_1q19p/run_20250714_104621/densenet169--1.1825-10.keras'
+    idh_model_path = '/home/radv/ofilipowicz/my-scratch/all_the_runs_m2/models_1cat/run_YYYYMMDD_HHMMSS/densenet169-best.keras'
+    codeletion_model_path = '/home/radv/ofilipowicz/my-scratch/all_the_runs_m2/models_1cat_1q19p/run_20250711_211954/densenet169-1.8408-23.keras'
     data_path = '/data/radv/radG/RAD/users/i.wamelink/AI_benchmark/AI_benchmark_datasets/temp/609_3D-DD-Res-U-Net_Osman/testing/images_t1_t2_fl/'
     excel_path = '/home/radv/ofilipowicz/my-scratch/datasetlabels/Clinical_data_1st_release.xlsx'
     
     # Load data
     print("Loading clinical data...")
-    df_imago = pd.read_excel(excel_path, engine='openpyxl')
+    df = pd.read_excel(excel_path, engine='openpyxl')
     
-    # Filter for IMAGO dataset only
-    print("Filtering for IMAGO dataset...")
-    print(f"Found {len(df_imago)} IMAGO samples")
+    print(f"Found {len(df)} total samples")
+    print("Available columns:", df.columns.tolist())
     
-    if len(df_imago) == 0:
-        print("No IMAGO samples found! Check the Dataset column values.")
-        print("Available datasets:", df['Dataset'].unique())
-        return
+    # Create file paths for all samples
+    test_files = [f'{data_path}/{pid}.npy' for pid in df['Pseudo']]
     
-    # Create file paths for IMAGO samples only
-    test_files = [f'{data_path}/{pid}.npy' for pid in df_imago['Pseudo']]
-    
-    # Get true three-class labels for IMAGO samples only
-    true_labels = get_true_three_class_labels(df_imago)
+    # Get true three-class labels for all samples
+    true_labels = get_true_three_class_labels(df)
     
     # Filter existing files and valid labels
     existing_data = []
@@ -239,11 +233,11 @@ def test_three_class_glioma_classification():
         if count > 0:
             print(f"  {class_names[i]}: {count}")
     
-    # Debug: Show some examples of label assignment for IMAGO samples
-    print("\nFirst 5 IMAGO label assignments (for debugging):")
-    debug_labels = get_true_three_class_labels(df_imago)
-    for i in range(min(5, len(df_imago))):
-        row = df_imago.iloc[i]
+    # Debug: Show some examples of label assignment
+    print("\nFirst 5 label assignments (for debugging):")
+    debug_labels = get_true_three_class_labels(df)
+    for i in range(min(5, len(df))):
+        row = df.iloc[i]
         print(f"  Patient {row.get('Pseudo', 'Unknown')}: IDH={row.get('IDH', 'Missing')}, "
               f"1p/19q='{row.get('1p/19q', 'Missing')}', Tumor_type='{row.get('Tumor_type', 'Missing')}' "
               f"-> Label={debug_labels[i]} ({class_names[debug_labels[i]] if debug_labels[i] is not None else 'Excluded'})")
@@ -263,18 +257,37 @@ def test_three_class_glioma_classification():
     
     print(f"\nThree-Class Glioma Classification Results:")
     print(f"Accuracy: {accuracy:.3f}")
+    
+    # Check which classes are actually present
+    unique_classes = sorted(list(set(existing_labels) | set(predictions)))
+    target_names_subset = [classifier.class_labels[i] for i in unique_classes]
+    
+    print(f"Classes present: {unique_classes}")
+    print(f"Class names: {target_names_subset}")
+    
     print(f"\nClassification Report:")
+    # Get unique classes present in the data
+    unique_classes = sorted(list(set(existing_labels) | set(predictions)))
+    target_names_subset = [classifier.class_labels[i] for i in unique_classes]
+    
     print(classification_report(existing_labels, predictions, 
-                              target_names=classifier.class_labels))
+                              labels=unique_classes,
+                              target_names=target_names_subset))
     
-    # Plot ROC curves
-    print("\nGenerating ROC curves...")
-    roc_auc_scores = plot_multiclass_roc(existing_labels, probabilities, classifier.class_labels)
-    
-    print(f"\nAUC Scores:")
-    for i, class_name in enumerate(classifier.class_labels):
-        print(f"{class_name}: {roc_auc_scores[i]:.3f}")
-    print(f"Micro-average: {roc_auc_scores['micro']:.3f}")
+    # Plot ROC curves only for classes that are present
+    if len(unique_classes) > 1:  # Only plot ROC if we have multiple classes
+        print("\nGenerating ROC curves...")
+        roc_auc_scores = plot_multiclass_roc(existing_labels, probabilities, classifier.class_labels)
+        
+        print(f"\nAUC Scores:")
+        for i in unique_classes:
+            if i < len(classifier.class_labels):
+                print(f"{classifier.class_labels[i]}: {roc_auc_scores[i]:.3f}")
+        if 'micro' in roc_auc_scores:
+            print(f"Micro-average: {roc_auc_scores['micro']:.3f}")
+    else:
+        print("\nOnly one class present - cannot compute ROC curves")
+        roc_auc_scores = {}
     
     # Confusion matrix
     cm = confusion_matrix(existing_labels, predictions)
@@ -292,9 +305,9 @@ def test_three_class_glioma_classification():
     os.makedirs('/home/radv/ofilipowicz/my-scratch/test_results/', exist_ok=True)
     
     # Save metrics to a text file
-    metrics_path = '/home/radv/ofilipowicz/my-scratch/test_results/three_class_glioma_results_IMAGO.txt'
+    metrics_path = '/home/radv/ofilipowicz/my-scratch/test_results/three_class_glioma_results.txt'
     with open(metrics_path, 'w') as f:
-        f.write(f"Three-Class Glioma Classification Results on IMAGO Dataset ({len(existing_labels)} samples):\n")
+        f.write(f"Three-Class Glioma Classification Results ({len(existing_labels)} samples):\n")
         f.write(f"Accuracy: {accuracy:.3f}\n\n")
         
         f.write("AUC Scores:\n")
@@ -303,8 +316,10 @@ def test_three_class_glioma_classification():
         f.write(f"Micro-average: {roc_auc_scores['micro']:.3f}\n\n")
         
         f.write("Classification Report:\n")
+        # Use the same subset of classes for saving
         f.write(classification_report(existing_labels, predictions, 
-                                    target_names=classifier.class_labels))
+                                    labels=unique_classes,
+                                    target_names=target_names_subset))
         
         f.write(f"\nLabel distribution:\n")
         for i, class_name in enumerate(classifier.class_labels):
