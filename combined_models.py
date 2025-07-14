@@ -270,7 +270,7 @@ if __name__ == "__main__":
     # Define paths to clinical data
     clinical_data_paths = {
         'ucsf': '/home/radv/ofilipowicz/my-scratch/datasetlabels/UCSF-PDGM_clinical_data.xlsx',
-        'egd': '/scratch/radv/ijwamelink/classification/Genetic_data.csv'  # or Rotterdam_clinical_data.xls
+        'rotterdam': '/scratch/radv/ijwamelink/classification/Genetic_data.csv'  # or Rotterdam_clinical_data.xls
     }
     
     # Path to test data
@@ -278,7 +278,7 @@ if __name__ == "__main__":
     
     # Run evaluation
     accuracy, predictions, probabilities = evaluate_three_class_model(
-        model_paths, test_data_path, clinical_data_paths
+        model_paths, clinical_data_paths
     )
     
     print(f"\nFinal three-class accuracy: {accuracy:.4f}")
