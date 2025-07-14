@@ -5,21 +5,10 @@ from sklearn.metrics import classification_report, confusion_matrix, accuracy_sc
 from sklearn.preprocessing import label_binarize
 import tensorflow as tf
 from keras.models import load_model
-from keras import backend as K
 import matplotlib.pyplot as plt
 import seaborn as sns
 from itertools import cycle
 from datagenerator import datagen
-
-# Custom focal loss function (needed for loading models)
-def focal_loss(alpha=0.75, gamma=2.0):
-    def loss(y_true, y_pred):
-        y_pred = tf.clip_by_value(y_pred, K.epsilon(), 1.0 - K.epsilon())
-        pt = tf.where(tf.equal(y_true, 1), y_pred, 1 - y_pred)
-        alpha_factor = tf.where(tf.equal(y_true, 1), alpha, 1 - alpha)
-        focal_weight = alpha_factor * tf.pow(1. - pt, gamma)
-        return -tf.reduce_mean(focal_weight * tf.math.log(pt))
-    return loss
 
 class ThreeClassGliomaClassifier:
     def __init__(self, idh_model_path, codeletion_model_path):
@@ -132,9 +121,9 @@ def get_true_three_class_labels(df):
                     true_labels.append(0)  # Glioblastoma
                 else:
                     true_labels.append(2)  # Default to Astrocytoma for IDH unknown
-            elif idh_status == 0 or str(idh_status).lower() == 'wildtype':
+            elif idh_status == 0 or str(idh_status).lower() == 'wt IDH':
                 true_labels.append(0)  # Glioblastoma
-            elif idh_status == 1 or str(idh_status).lower() == 'mutant':
+            elif idh_status == 1 or str(idh_status).lower() == 'IDH 1 mutation':
                 true_labels.append(2)  # Astrocytoma
             else:
                 true_labels.append(None)  # Exclude uncertain cases
@@ -211,11 +200,21 @@ def test_three_class_glioma_classification():
     print("Loading clinical data...")
     df = pd.read_excel(excel_path, engine='openpyxl')
     
-    # Create file paths
-    test_files = [f'{data_path}/{pid}.npy' for pid in df['Pseudo']]
+    # Filter for IMAGO dataset only
+    print("Filtering for IMAGO dataset...")
+    df_imago = df[df['Dataset'] == 'IMAGO'].copy()
+    print(f"Found {len(df_imago)} IMAGO samples out of {len(df)} total samples")
     
-    # Get true three-class labels
-    true_labels = get_true_three_class_labels(df)
+    if len(df_imago) == 0:
+        print("No IMAGO samples found! Check the Dataset column values.")
+        print("Available datasets:", df['Dataset'].unique())
+        return
+    
+    # Create file paths for IMAGO samples only
+    test_files = [f'{data_path}/{pid}.npy' for pid in df_imago['Pseudo']]
+    
+    # Get true three-class labels for IMAGO samples only
+    true_labels = get_true_three_class_labels(df_imago)
     
     # Filter existing files and valid labels
     existing_data = []
@@ -241,11 +240,11 @@ def test_three_class_glioma_classification():
         if count > 0:
             print(f"  {class_names[i]}: {count}")
     
-    # Debug: Show some examples of label assignment
-    print("\nFirst 5 label assignments (for debugging):")
-    debug_labels = get_true_three_class_labels(df)
-    for i in range(min(5, len(df))):
-        row = df.iloc[i]
+    # Debug: Show some examples of label assignment for IMAGO samples
+    print("\nFirst 5 IMAGO label assignments (for debugging):")
+    debug_labels = get_true_three_class_labels(df_imago)
+    for i in range(min(5, len(df_imago))):
+        row = df_imago.iloc[i]
         print(f"  Patient {row.get('Pseudo', 'Unknown')}: IDH={row.get('IDH', 'Missing')}, "
               f"1p/19q='{row.get('1p/19q', 'Missing')}', Tumor_type='{row.get('Tumor_type', 'Missing')}' "
               f"-> Label={debug_labels[i]} ({class_names[debug_labels[i]] if debug_labels[i] is not None else 'Excluded'})")
@@ -294,9 +293,9 @@ def test_three_class_glioma_classification():
     os.makedirs('/home/radv/ofilipowicz/my-scratch/test_results/', exist_ok=True)
     
     # Save metrics to a text file
-    metrics_path = '/home/radv/ofilipowicz/my-scratch/test_results/three_class_glioma_results.txt'
+    metrics_path = '/home/radv/ofilipowicz/my-scratch/test_results/three_class_glioma_results_IMAGO.txt'
     with open(metrics_path, 'w') as f:
-        f.write(f"Three-Class Glioma Classification Results on {len(existing_labels)} samples:\n")
+        f.write(f"Three-Class Glioma Classification Results on IMAGO Dataset ({len(existing_labels)} samples):\n")
         f.write(f"Accuracy: {accuracy:.3f}\n\n")
         
         f.write("AUC Scores:\n")
