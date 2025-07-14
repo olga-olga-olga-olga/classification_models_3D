@@ -172,29 +172,7 @@ def evaluate_three_class_model(model_paths, clinical_data_paths):
     
     # Load clinical data exactly like in your test code
     patients_sf = pd.read_excel(clinical_data_paths['ucsf'], engine='openpyxl')
-    patients_sf['ID'] = patients_sf['ID'].str.replace(r'(\d+)
-
-# Example usage
-if __name__ == "__main__":
-    # Define paths to your trained models
-    model_paths = {
-        'idh': '/home/radv/ofilipowicz/my-scratch/all_the_runs_m2/models_1cat/run_YYYYMMDD_HHMMSS/densenet169-best.keras',
-        'codeletion': '/home/radv/ofilipowicz/my-scratch/all_the_runs_m2/models_1cat_1q19p/run_YYYYMMDD_HHMMSS/densenet169-best.keras'
-    }
-    
-    # Define paths to clinical data (exactly as in your test code)
-    clinical_data_paths = {
-        'ucsf': '/home/radv/ofilipowicz/my-scratch/datasetlabels/UCSF-PDGM_clinical_data.xlsx',
-        'rotterdam': '/home/radv/ofilipowicz/my-scratch/datasetlabels/Rotterdam_clinical_data.xls'
-    }
-    
-    # Run evaluation (no separate test_data_path needed - uses same structure as training)
-    accuracy, predictions, probabilities = evaluate_three_class_model(
-        model_paths, clinical_data_paths
-    )
-    
-    print(f"\nFinal three-class accuracy: {accuracy:.4f}")
-, lambda m: f"{int(m.group(1)):04}", regex=True)
+    patients_sf['ID'] = patients_sf['ID'].str.replace(r'(\d+)$', lambda m: f"{int(m.group(1)):04}", regex=True)
     patients_sf = patients_sf[~patients_sf.ID.isna()]
     
     patients_egd = pd.read_excel(clinical_data_paths['rotterdam'])

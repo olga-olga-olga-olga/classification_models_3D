@@ -148,7 +148,7 @@ def train_model_example():
     print(get_model_memory_usage(batch_size_train, model))
     optim = Adam(learning_rate=learning_rate)
 
-    alpha_weights = [1.0, 1.3s, 0.6]  
+    alpha_weights = [1.0, 1.3, 0.6]  
 
     loss_to_use = categorical_focal_loss(gamma=2.2, alpha=alpha_weights)
     # loss_to_use ='categorical_crossentropy' 
