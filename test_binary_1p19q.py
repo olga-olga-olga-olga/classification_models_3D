@@ -52,26 +52,67 @@ class ThreeClassGliomaClassifier:
         idh_binary = (idh_pred > 0.5).astype(int).flatten()
         codeletion_binary = (codeletion_pred > 0.5).astype(int).flatten()
 
+        # Debug: Print distribution of binary predictions
+        print(f"IDH predictions distribution: Wildtype={np.sum(idh_binary==0)}, Mutant={np.sum(idh_binary==1)}")
+        print(f"1p/19q predictions distribution: Not codeleted={np.sum(codeletion_binary==0)}, Codeleted={np.sum(codeletion_binary==1)}")
+        
+        # Detailed analysis of combinations
+        idh_wt_1p19q_intact = np.sum((idh_binary==0) & (codeletion_binary==0))
+        idh_wt_1p19q_codeleted = np.sum((idh_binary==0) & (codeletion_binary==1))
+        idh_mut_1p19q_intact = np.sum((idh_binary==1) & (codeletion_binary==0))
+        idh_mut_1p19q_codeleted = np.sum((idh_binary==1) & (codeletion_binary==1))
+        
+        print(f"\nDetailed combination analysis:")
+        print(f"IDH-wildtype + 1p/19q-intact: {idh_wt_1p19q_intact} -> Glioblastoma")
+        print(f"IDH-wildtype + 1p/19q-codeleted: {idh_wt_1p19q_codeleted} -> Glioblastoma (unusual but still GBM)")
+        print(f"IDH-mutant + 1p/19q-intact: {idh_mut_1p19q_intact} -> Astrocytoma")
+        print(f"IDH-mutant + 1p/19q-codeleted: {idh_mut_1p19q_codeleted} -> Oligodendroglioma")
+        
+        # Show continuous prediction values for IDH-mutant cases
+        idh_mutant_indices = np.where(idh_binary == 1)[0]
+        if len(idh_mutant_indices) > 0:
+            print(f"\nFor IDH-mutant cases, 1p/19q prediction values:")
+            print(f"Min: {np.min(codeletion_pred[idh_mutant_indices]):.3f}")
+            print(f"Max: {np.max(codeletion_pred[idh_mutant_indices]):.3f}")
+            print(f"Mean: {np.mean(codeletion_pred[idh_mutant_indices]):.3f}")
+            print(f"Std: {np.std(codeletion_pred[idh_mutant_indices]):.3f}")
+            
+            # Show how many would be Astrocytoma with different thresholds
+            for threshold in [0.3, 0.4, 0.5, 0.6, 0.7]:
+                astro_count = np.sum(codeletion_pred[idh_mutant_indices] <= threshold)
+                oligo_count = np.sum(codeletion_pred[idh_mutant_indices] > threshold)
+                print(f"With 1p/19q threshold {threshold}: Astrocytoma={astro_count}, Oligodendroglioma={oligo_count}")
+        
         # Combine predictions according to WHO classification
         predictions = []
         probabilities = []
+        classification_counts = {"glioblastoma": 0, "oligodendroglioma": 0, "astrocytoma": 0}
 
         for i in range(len(idh_binary)):
             if idh_binary[i] == 0:  # IDH wildtype
                 pred_class = 0  # Glioblastoma
+                classification_counts["glioblastoma"] += 1
                 # Probability is confidence in IDH wildtype
                 prob = [1 - idh_pred[i][0], 0, 0]
             elif idh_binary[i] == 1 and codeletion_binary[i] == 1:  # IDH mutant + codeleted
                 pred_class = 1  # Oligodendroglioma
+                classification_counts["oligodendroglioma"] += 1
                 # Probability combines both model confidences
                 prob = [0, idh_pred[i][0] * codeletion_pred[i][0], 0]
             else:  # IDH mutant + intact (or uncertain codeletion)
                 pred_class = 2  # Astrocytoma
+                classification_counts["astrocytoma"] += 1
                 # Probability is IDH mutant confidence * (1 - codeletion confidence)
                 prob = [0, 0, idh_pred[i][0] * (1 - codeletion_pred[i][0])]
 
             predictions.append(pred_class)
             probabilities.append(prob)
+
+        # Print final classification distribution
+        print(f"Final predictions distribution:")
+        print(f"  Glioblastoma: {classification_counts['glioblastoma']}")
+        print(f"  Oligodendroglioma: {classification_counts['oligodendroglioma']}")
+        print(f"  Astrocytoma: {classification_counts['astrocytoma']}")
 
         return np.array(predictions), np.array(probabilities)
 
