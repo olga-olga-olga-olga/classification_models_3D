@@ -95,7 +95,7 @@ def train_model_example():
     epochs = 50
     steps_per_epoch = 100
     validation_steps = 20
-    dropout_val = 0.2
+    dropout_val = 0.25
 
     # --- SHAPE VARIABLES ---
     target_size = shape_size[:3]
@@ -117,7 +117,7 @@ def train_model_example():
     )
     datasets.add_dataset(data_path_1, excel_path_1, Dataset1Handler)
     datasets.add_dataset(data_path_2, excel_path_2, Dataset2Handler)
-    datasets.add_dataset(data_path_3, excel_path_3, Dataset3Handler)
+    # datasets.add_dataset(data_path_3, excel_path_3, Dataset3Handler)
     
     # Create batch generators (replaces gen_random_volume)
     gen_train, gen_valid, class_weights = create_batch_generators(
@@ -148,9 +148,9 @@ def train_model_example():
     print(get_model_memory_usage(batch_size_train, model))
     optim = Adam(learning_rate=learning_rate)
 
-    alpha_weights = [1.0, 1.3, 0.6]  
-
-    loss_to_use = categorical_focal_loss(gamma=2.2, alpha=alpha_weights)
+    alpha_weights = [1.2, 1.2, 1.0]  
+    gamma = 2.1
+    loss_to_use = categorical_focal_loss(gamma=gamma, alpha=alpha_weights)
     # loss_to_use ='categorical_crossentropy' 
     model.compile(
         optimizer=optim,
@@ -162,6 +162,8 @@ def train_model_example():
             class_2_accuracy
         ]
     )
+
+    print(f"learning rate: {learning_rate}, patience: {patience}, epochs: {epochs}, dropout: {dropout_val}, focal loss gamma: {gamma}, focal loss alpha: {alpha_weights}")
 
   # Change all model/log save paths to your directory
     save_dir = '/home/radv/ofilipowicz/my-scratch/all_the_runs_m2/models_3cat/'

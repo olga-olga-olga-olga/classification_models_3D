@@ -228,7 +228,8 @@ def plot_class_performance_summary(y_true, y_pred, y_pred_proba, class_names, sa
 
 if __name__ == '__main__':
     # --- CONFIGURE THESE PATHS ---
-    model_path = '/home/radv/ofilipowicz/my-scratch/all_the_runs_m2/models_3cat/run_20250710_105454/densenet169-1.2295-35.keras'  
+    model_path = '/home/radv/ofilipowicz/my-scratch/all_the_runs_m2/models_3cat/run_20250714_182554/densenet169-0.5463-38.keras'  
+    # next to test: /home/radv/ofilipowicz/my-scratch/all_the_runs_m2/models_3cat/run_20250714_153005/densenet169-0.6248-38.keras
     data_path = "/data/share/IMAGO/Rotterdam/"          
     excel_path = "/home/radv/ofilipowicz/my-scratch/datasetlabels/Rotterdam_clinical_data.xls"   
     output_dir = '/home/radv/ofilipowicz/my-scratch/test_results/'  # Directory to save plots
