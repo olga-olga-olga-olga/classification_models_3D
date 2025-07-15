@@ -53,44 +53,118 @@ def extract_true_labels_and_predictions(generator, model, steps, num_classes=3):
     all_predictions = []
     
     for i in range(steps):
-        batch = next(generator)
-        X_batch, y_batch = batch
-        
-        # Get predictions for this batch
-        pred_batch = model.predict(X_batch, verbose=0)
-        
-        # Store true labels (convert from one-hot to class indices)
-        true_batch = np.argmax(y_batch, axis=1)
-        all_true_labels.extend(true_batch)
-        
-        # Store predictions (probabilities)
-        all_predictions.extend(pred_batch)
-        
-        if (i + 1) % 10 == 0:
-            print(f"Processed {i + 1}/{steps} batches")
+        try:
+            batch = next(generator)
+            X_batch, y_batch = batch
+            
+            # Get predictions for this batch
+            pred_batch = model.predict(X_batch, verbose=0)
+            
+            # Store true labels (convert from one-hot to class indices)
+            true_batch = np.argmax(y_batch, axis=1)
+            all_true_labels.extend(true_batch)
+            
+            # Store predictions (probabilities)
+            all_predictions.extend(pred_batch)
+            
+            if (i + 1) % 10 == 0:
+                print(f"Processed {i + 1}/{steps} batches")
+                
+        except Exception as e:
+            print(f"Error processing batch {i}: {e}")
+            break
     
-    return np.array(all_true_labels), np.array(all_predictions)
+    true_labels = np.array(all_true_labels)
+    predictions = np.array(all_predictions)
+    
+    # Ensure predictions are properly normalized (probabilities sum to 1)
+    predictions = predictions / np.sum(predictions, axis=1, keepdims=True)
+    
+    print(f"Extracted {len(true_labels)} samples")
+    print(f"True labels range: {np.min(true_labels)} to {np.max(true_labels)}")
+    print(f"Predictions shape: {predictions.shape}")
+    
+    return true_labels, predictions
+
+def debug_predictions(y_true, y_pred, y_pred_proba, class_names):
+    """Debug function to check prediction consistency"""
+    print("Debugging predictions...")
+    print(f"y_true shape: {y_true.shape}")
+    print(f"y_pred shape: {y_pred.shape}")
+    print(f"y_pred_proba shape: {y_pred_proba.shape}")
+    
+    print(f"\ny_true range: {np.min(y_true)} to {np.max(y_true)}")
+    print(f"y_pred range: {np.min(y_pred)} to {np.max(y_pred)}")
+    
+    print(f"\nTrue label distribution: {np.bincount(y_true)}")
+    print(f"Predicted label distribution: {np.bincount(y_pred)}")
+    
+    # Check if argmax of probabilities matches y_pred
+    y_pred_from_proba = np.argmax(y_pred_proba, axis=1)
+    matches = np.sum(y_pred == y_pred_from_proba)
+    print(f"\nConsistency check - y_pred matches argmax(y_pred_proba): {matches}/{len(y_pred)} ({matches/len(y_pred)*100:.1f}%)")
+    
+    # Show some examples
+    print(f"\nFirst 10 samples:")
+    for i in range(min(10, len(y_true))):
+        print(f"Sample {i}: True={y_true[i]} ({class_names[y_true[i]]}), "
+              f"Pred={y_pred[i]} ({class_names[y_pred[i]]}), "
+              f"Proba={y_pred_proba[i]}")
 
 def plot_confusion_matrix(y_true, y_pred, class_names, save_path=None):
-    """Plot confusion matrix"""
+    """Plot confusion matrix with correct metrics"""
     cm = confusion_matrix(y_true, y_pred)
     
-    plt.figure(figsize=(8, 6))
+    # Calculate overall accuracy
+    overall_accuracy = np.trace(cm) / np.sum(cm)
+    
+    plt.figure(figsize=(10, 8))
     sns.heatmap(cm, annot=True, fmt='d', cmap='Blues', 
                 xticklabels=class_names, yticklabels=class_names)
-    plt.title('Confusion Matrix')
+    plt.title(f'Confusion Matrix\nOverall Accuracy: {overall_accuracy:.3f}')
     plt.ylabel('True Label')
     plt.xlabel('Predicted Label')
     
-    # Add accuracy for each class
+    # Add per-class metrics
     for i in range(len(class_names)):
-        accuracy = cm[i, i] / cm[i, :].sum() if cm[i, :].sum() > 0 else 0
-        plt.text(i + 0.5, i - 0.3, f'Acc: {accuracy:.2f}', 
-                ha='center', va='center', fontweight='bold')
+        # Recall (Sensitivity): True Positives / (True Positives + False Negatives)
+        recall = cm[i, i] / cm[i, :].sum() if cm[i, :].sum() > 0 else 0
+        
+        # Precision: True Positives / (True Positives + False Positives)  
+        precision = cm[i, i] / cm[:, i].sum() if cm[:, i].sum() > 0 else 0
+        
+        # Add text annotations
+        plt.text(i + 0.5, i - 0.3, f'Recall: {recall:.2f}', 
+                ha='center', va='center', fontweight='bold', fontsize=10)
+        plt.text(i + 0.5, i + 0.3, f'Prec: {precision:.2f}', 
+                ha='center', va='center', fontweight='bold', fontsize=10)
     
     if save_path:
         plt.savefig(save_path, dpi=300, bbox_inches='tight')
     plt.show()
+    
+    # Print detailed confusion matrix analysis
+    print("\nConfusion Matrix Analysis:")
+    print(f"Overall Accuracy: {overall_accuracy:.4f}")
+    print(f"Total samples: {np.sum(cm)}")
+    print("\nPer-class breakdown:")
+    
+    for i, class_name in enumerate(class_names):
+        true_positives = cm[i, i]
+        false_negatives = cm[i, :].sum() - cm[i, i]  # Row sum - diagonal
+        false_positives = cm[:, i].sum() - cm[i, i]  # Column sum - diagonal
+        
+        recall = true_positives / (true_positives + false_negatives) if (true_positives + false_negatives) > 0 else 0
+        precision = true_positives / (true_positives + false_positives) if (true_positives + false_positives) > 0 else 0
+        
+        print(f"{class_name}:")
+        print(f"  True Positives: {true_positives}")
+        print(f"  False Negatives: {false_negatives}")
+        print(f"  False Positives: {false_positives}")
+        print(f"  Recall (Sensitivity): {recall:.4f}")
+        print(f"  Precision: {precision:.4f}")
+    
+    return cm
 
 def plot_roc_curves(y_true, y_pred_proba, num_classes, class_names, save_path=None):
     """Plot ROC curves for each class (one-vs-rest)"""
@@ -228,8 +302,7 @@ def plot_class_performance_summary(y_true, y_pred, y_pred_proba, class_names, sa
 
 if __name__ == '__main__':
     # --- CONFIGURE THESE PATHS ---
-    model_path = '/home/radv/ofilipowicz/my-scratch/all_the_runs_m2/models_3cat/run_20250714_182554/densenet169-0.5463-38.keras'  
-    # next to test: /home/radv/ofilipowicz/my-scratch/all_the_runs_m2/models_3cat/run_20250714_153005/densenet169-0.6248-38.keras
+    model_path = '/home/radv/ofilipowicz/my-scratch/all_the_runs_m2/models_3cat/run_20250710_105454/densenet169-1.2295-35.keras'  
     data_path = "/data/share/IMAGO/Rotterdam/"          
     excel_path = "/home/radv/ofilipowicz/my-scratch/datasetlabels/Rotterdam_clinical_data.xls"   
     output_dir = '/home/radv/ofilipowicz/my-scratch/test_results/'  # Directory to save plots
@@ -252,7 +325,6 @@ if __name__ == '__main__':
     class_names = ['Astrocytoma', 'Oligodendroglioma', 'GBM']  # Update with your class names
     steps = 750
     
-
 
     # Create the generator once
     _, gen_test, _ = create_batch_generators(
@@ -293,10 +365,13 @@ if __name__ == '__main__':
     print(f"\nExtracted {len(y_true)} samples")
     print(f"Class distribution: {np.bincount(y_true)}")
 
+    # --- DEBUG PREDICTIONS ---
+    debug_predictions(y_true, y_pred, y_pred_proba, class_names)
+
     # --- GENERATE COMPREHENSIVE PLOTS ---
     # 1. Confusion Matrix
-    print("Generating confusion matrix...")
-    plot_confusion_matrix(
+    print("\nGenerating confusion matrix...")
+    cm = plot_confusion_matrix(
         y_true, y_pred, class_names, 
         save_path=os.path.join(output_dir, f'confusion_matrix_{model_name}.png')
     )
@@ -347,7 +422,6 @@ if __name__ == '__main__':
     print(df_metrics.to_string(index=False))
     
     # Confusion matrix numbers
-    cm = confusion_matrix(y_true, y_pred)
     print(f"\nConfusion Matrix:")
     print(f"Classes: {class_names}")
     print(cm)
