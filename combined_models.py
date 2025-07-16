@@ -8,6 +8,7 @@ from keras.models import load_model
 import matplotlib.pyplot as plt
 import seaborn as sns
 from itertools import cycle
+from datetime import datetime
 from datagenerator import datagen
 
 class ThreeClassGliomaClassifier:
@@ -67,21 +68,6 @@ class ThreeClassGliomaClassifier:
         print(f"IDH-wildtype + 1p/19q-codeleted: {idh_wt_1p19q_codeleted} -> Glioblastoma (unusual but still GBM)")
         print(f"IDH-mutant + 1p/19q-intact: {idh_mut_1p19q_intact} -> Astrocytoma")
         print(f"IDH-mutant + 1p/19q-codeleted: {idh_mut_1p19q_codeleted} -> Oligodendroglioma")
-        
-        # Show continuous prediction values for IDH-mutant cases
-        idh_mutant_indices = np.where(idh_binary == 1)[0]
-        if len(idh_mutant_indices) > 0:
-            print(f"\nFor IDH-mutant cases, 1p/19q prediction values:")
-            print(f"Min: {np.min(codeletion_pred[idh_mutant_indices]):.3f}")
-            print(f"Max: {np.max(codeletion_pred[idh_mutant_indices]):.3f}")
-            print(f"Mean: {np.mean(codeletion_pred[idh_mutant_indices]):.3f}")
-            print(f"Std: {np.std(codeletion_pred[idh_mutant_indices]):.3f}")
-            
-            # Show how many would be Astrocytoma with different thresholds
-            for threshold in [0.3, 0.4, 0.5, 0.6, 0.7]:
-                astro_count = np.sum(codeletion_pred[idh_mutant_indices] <= threshold)
-                oligo_count = np.sum(codeletion_pred[idh_mutant_indices] > threshold)
-                print(f"With 1p/19q threshold {threshold}: Astrocytoma={astro_count}, Oligodendroglioma={oligo_count}")
         
         # Combine predictions according to WHO classification
         predictions = []
@@ -152,7 +138,7 @@ def get_true_three_class_labels(df):
 
     return true_labels
 
-def plot_multiclass_roc(y_true, y_prob, class_names):
+def plot_multiclass_roc(y_true, y_prob, class_names, save_path):
     """
     Plot ROC curves for multiclass classification.
     
@@ -160,6 +146,7 @@ def plot_multiclass_roc(y_true, y_prob, class_names):
         y_true: True labels (0, 1, 2)
         y_prob: Prediction probabilities for each class
         class_names: List of class names
+        save_path: Path to save the plot
     """
     # Get unique classes present in the data
     unique_classes = sorted(np.unique(y_true))
@@ -215,16 +202,100 @@ def plot_multiclass_roc(y_true, y_prob, class_names):
     plt.legend(loc="lower right", fontsize=10)
     plt.grid(True, alpha=0.3)
     plt.tight_layout()
+    plt.savefig(save_path, dpi=300, bbox_inches='tight')
     plt.show()
 
     return roc_auc
+
+def plot_confusion_matrix(y_true, y_pred, class_names, save_path):
+    """
+    Plot and save confusion matrix.
+    
+    Args:
+        y_true: True labels
+        y_pred: Predicted labels
+        class_names: List of class names
+        save_path: Path to save the plot
+    """
+    # Get unique classes present in the data
+    present_labels = sorted(set(y_true) | set(y_pred))
+    present_class_names = [class_names[i] for i in present_labels]
+    
+    # Create confusion matrix
+    cm = confusion_matrix(y_true, y_pred, labels=present_labels)
+    
+    # Plot confusion matrix
+    plt.figure(figsize=(8, 6))
+    sns.heatmap(cm, annot=True, fmt='d', cmap='Blues', 
+                xticklabels=present_class_names, 
+                yticklabels=present_class_names)
+    plt.title('Confusion Matrix - Three-Class Glioma Classification')
+    plt.xlabel('Predicted')
+    plt.ylabel('True')
+    plt.tight_layout()
+    plt.savefig(save_path, dpi=300, bbox_inches='tight')
+    plt.show()
+    
+    return cm
+
+def plot_prediction_distribution(y_true, y_prob, class_names, save_path):
+    """
+    Plot prediction probability distributions for each class.
+    
+    Args:
+        y_true: True labels
+        y_prob: Prediction probabilities
+        class_names: List of class names
+        save_path: Path to save the plot
+    """
+    fig, axes = plt.subplots(1, 3, figsize=(15, 5))
+    
+    for class_idx in range(3):
+        ax = axes[class_idx]
+        
+        # Get probabilities for this class
+        class_probs = y_prob[:, class_idx]
+        
+        # Plot histogram for each true class
+        colors = ['red', 'blue', 'green']
+        for true_class in range(3):
+            if np.sum(np.array(y_true) == true_class) > 0:
+                mask = np.array(y_true) == true_class
+                ax.hist(class_probs[mask], bins=20, alpha=0.7, 
+                       label=f'True {class_names[true_class]}', 
+                       color=colors[true_class])
+        
+        ax.set_xlabel('Predicted Probability')
+        ax.set_ylabel('Count')
+        ax.set_title(f'Prediction Distribution for {class_names[class_idx]}')
+        ax.legend()
+        ax.grid(True, alpha=0.3)
+    
+    plt.tight_layout()
+    plt.savefig(save_path, dpi=300, bbox_inches='tight')
+    plt.show()
+
+def create_results_directory():
+    """
+    Create a timestamped results directory.
+    
+    Returns:
+        Path to the created directory
+    """
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    results_dir = f'/home/radv/ofilipowicz/my-scratch/test_results/three_class_results_{timestamp}'
+    os.makedirs(results_dir, exist_ok=True)
+    return results_dir
 
 def test_three_class_glioma_classification():
     """
     Test the three-class glioma classification using the same approach as binary testing.
     """
+    # Create results directory
+    results_dir = create_results_directory()
+    print(f"Results will be saved to: {results_dir}")
+    
     # PATHS - Update these to your actual model paths
-
     idh_model_path = '/home/radv/ofilipowicz/my-scratch/olga/densenet121_2-0.0546-12.keras'
     codeletion_model_path = '/home/radv/ofilipowicz/my-scratch/all_the_runs_m2/models_1cat_1q19p/run_20250715_230346/densenet169-0.1060-35.keras'
     data_path = '/data/radv/radG/RAD/users/i.wamelink/AI_benchmark/AI_benchmark_datasets/temp/609_3D-DD-Res-U-Net_Osman/testing/images_t1_t2_fl/'
@@ -232,21 +303,14 @@ def test_three_class_glioma_classification():
 
     # Load data
     print("Loading clinical data...")
-
     df_imago = pd.read_excel(excel_path, engine='openpyxl')
-
-    # Filter for IMAGO dataset only
-    print("Filtering for IMAGO dataset...")
     print(f"Found {len(df_imago)} IMAGO samples")
-
 
     # Create file paths for IMAGO samples only
     test_files = [f'{data_path}/{pid}.npy' for pid in df_imago['Pseudo']]
 
     # Get true three-class labels for IMAGO samples only
     print("Analyzing tumor types in dataset...")
-    
-    # First, let's see what tumor types are available
     tumor_types = df_imago['Tumor_type'].dropna().unique()
     print(f"Available tumor types: {tumor_types}")
     
@@ -276,19 +340,10 @@ def test_three_class_glioma_classification():
         if count > 0:
             print(f"  {class_names[i]}: {count}")
 
-    # Debug: Show some examples of label assignment for IMAGO samples
-    print("\nFirst 10 IMAGO tumor type assignments:")
-    debug_labels = get_true_three_class_labels(df_imago)
-    for i in range(min(10, len(df_imago))):
-        row = df_imago.iloc[i]
-        tumor_type = row.get('Tumor_type', 'Missing')
-        print(f"  Patient {row.get('Pseudo', 'Unknown')}: Tumor_type='{tumor_type}' "
-              f"-> Label={debug_labels[i]} ({class_names[debug_labels[i]] if debug_labels[i] is not None else 'Excluded'})")
-
     # Initialize classifier
     classifier = ThreeClassGliomaClassifier(idh_model_path, codeletion_model_path)
 
-    # Create data generator (same approach as binary testing)
+    # Create data generator
     test_gen = datagen(existing_files, existing_labels, batch_size=1, shuffle=False, augment=False)
 
     # Make predictions
@@ -297,14 +352,11 @@ def test_three_class_glioma_classification():
 
     # Calculate metrics
     accuracy = accuracy_score(existing_labels, predictions)
-
-    print(f"\nThree-Class Glioma Classification Results:")
-    print(f"Overall Accuracy: {accuracy:.3f}")
-    
-    # Check which classes are present in the data
     unique_true_labels = sorted(np.unique(existing_labels))
     unique_predicted_labels = sorted(np.unique(predictions))
     
+    print(f"\nThree-Class Glioma Classification Results:")
+    print(f"Overall Accuracy: {accuracy:.3f}")
     print(f"Classes present in true labels: {[class_names[i] for i in unique_true_labels]}")
     print(f"Classes present in predictions: {[class_names[i] for i in unique_predicted_labels]}")
     
@@ -314,18 +366,14 @@ def test_three_class_glioma_classification():
     
     for class_idx in unique_true_labels:
         class_name = class_names[class_idx]
-        
-        # Get indices where true label is this class
         class_mask = np.array(existing_labels) == class_idx
         
-        if np.sum(class_mask) > 0:  # Only if this class has samples
-            # Calculate accuracy for this specific class
+        if np.sum(class_mask) > 0:
             class_predictions = np.array(predictions)[class_mask]
             class_true_labels = np.array(existing_labels)[class_mask]
             class_accuracy = accuracy_score(class_true_labels, class_predictions)
             per_class_accuracies[class_idx] = class_accuracy
             
-            # Count correct and total predictions for this class
             correct_predictions = np.sum(class_predictions == class_idx)
             total_samples = len(class_true_labels)
             
@@ -334,24 +382,39 @@ def test_three_class_glioma_classification():
             per_class_accuracies[class_idx] = 0.0
             print(f"  {class_name}: No samples in test set")
     
-    # Calculate balanced accuracy (average of per-class accuracies)
+    # Calculate balanced accuracy
     present_class_accuracies = [acc for class_idx, acc in per_class_accuracies.items() 
                                if class_idx in unique_true_labels and np.sum(np.array(existing_labels) == class_idx) > 0]
     balanced_accuracy = np.mean(present_class_accuracies) if present_class_accuracies else 0.0
     print(f"\nBalanced Accuracy (average per-class): {balanced_accuracy:.3f}")
     
-    # Use only the labels that are actually present
+    # Get present labels for classification report
     present_labels = sorted(set(existing_labels) | set(predictions))
     present_class_names = [class_names[i] for i in present_labels]
     
     print(f"\nClassification Report:")
-    print(classification_report(existing_labels, predictions, 
-                              labels=present_labels,
-                              target_names=present_class_names))
+    class_report = classification_report(existing_labels, predictions, 
+                                       labels=present_labels,
+                                       target_names=present_class_names)
+    print(class_report)
 
-    # Plot ROC curves
-    print("\nGenerating ROC curves...")
-    roc_auc_scores = plot_multiclass_roc(existing_labels, probabilities, classifier.class_labels)
+    # Generate and save plots
+    print("\nGenerating and saving plots...")
+    
+    # ROC curves
+    roc_save_path = os.path.join(results_dir, 'roc_curves.png')
+    roc_auc_scores = plot_multiclass_roc(existing_labels, probabilities, 
+                                        classifier.class_labels, roc_save_path)
+
+    # Confusion matrix
+    cm_save_path = os.path.join(results_dir, 'confusion_matrix.png')
+    cm = plot_confusion_matrix(existing_labels, predictions, 
+                              classifier.class_labels, cm_save_path)
+
+    # Prediction distribution
+    pred_dist_save_path = os.path.join(results_dir, 'prediction_distribution.png')
+    plot_prediction_distribution(existing_labels, probabilities, 
+                                classifier.class_labels, pred_dist_save_path)
 
     print(f"\nAUC Scores:")
     for i, class_name in enumerate(classifier.class_labels):
@@ -361,32 +424,32 @@ def test_three_class_glioma_classification():
             print(f"{class_name}: Not present in data")
     print(f"Micro-average: {roc_auc_scores['micro']:.3f}")
 
-    # Confusion matrix
-    cm = confusion_matrix(existing_labels, predictions, labels=present_labels)
-    plt.figure(figsize=(8, 6))
-    sns.heatmap(cm, annot=True, fmt='d', cmap='Blues', 
-                xticklabels=present_class_names, 
-                yticklabels=present_class_names)
-    plt.title('Confusion Matrix - Three-Class Glioma Classification')
-    plt.xlabel('Predicted')
-    plt.ylabel('True')
-    plt.tight_layout()
-    plt.show()
-
-    # Save results
-    os.makedirs('/home/radv/ofilipowicz/my-scratch/test_results/', exist_ok=True)
-
-    # Save metrics to a text file
-    metrics_path = '/home/radv/ofilipowicz/my-scratch/test_results/three_class_glioma_results_IMAGO.txt'
+    # Save comprehensive results to text file
+    metrics_path = os.path.join(results_dir, 'classification_results.txt')
     with open(metrics_path, 'w') as f:
-        f.write(f"Three-Class Glioma Classification Results on IMAGO Dataset ({len(existing_labels)} samples):\n")
+        f.write("=" * 60 + "\n")
+        f.write("THREE-CLASS GLIOMA CLASSIFICATION RESULTS\n")
+        f.write("=" * 60 + "\n\n")
+        
+        f.write(f"Test Dataset: IMAGO ({len(existing_labels)} samples)\n")
+        f.write(f"IDH Model: {os.path.basename(idh_model_path)}\n")
+        f.write(f"1p/19q Model: {os.path.basename(codeletion_model_path)}\n\n")
+        
+        f.write("OVERALL PERFORMANCE:\n")
+        f.write("-" * 20 + "\n")
         f.write(f"Overall Accuracy: {accuracy:.3f}\n")
         f.write(f"Balanced Accuracy: {balanced_accuracy:.3f}\n\n")
         
-        f.write(f"Classes present in true labels: {[class_names[i] for i in unique_true_labels]}\n")
-        f.write(f"Classes present in predictions: {[class_names[i] for i in unique_predicted_labels]}\n\n")
-
-        f.write("Per-Class Accuracy Scores:\n")
+        f.write("CLASS DISTRIBUTION:\n")
+        f.write("-" * 20 + "\n")
+        for i, class_name in enumerate(classifier.class_labels):
+            count = np.sum(np.array(existing_labels) == i)
+            percentage = count / len(existing_labels) * 100
+            f.write(f"{class_name}: {count} samples ({percentage:.1f}%)\n")
+        f.write("\n")
+        
+        f.write("PER-CLASS ACCURACY:\n")
+        f.write("-" * 20 + "\n")
         for class_idx in unique_true_labels:
             class_name = class_names[class_idx]
             class_mask = np.array(existing_labels) == class_idx
@@ -395,12 +458,13 @@ def test_three_class_glioma_classification():
                 correct_predictions = np.sum(class_predictions == class_idx)
                 total_samples = len(class_predictions)
                 class_accuracy = per_class_accuracies[class_idx]
-                f.write(f"  {class_name}: {class_accuracy:.3f} ({correct_predictions}/{total_samples} correct)\n")
+                f.write(f"{class_name}: {class_accuracy:.3f} ({correct_predictions}/{total_samples} correct)\n")
             else:
-                f.write(f"  {class_name}: No samples in test set\n")
+                f.write(f"{class_name}: No samples in test set\n")
         f.write("\n")
 
-        f.write("AUC Scores:\n")
+        f.write("AUC SCORES:\n")
+        f.write("-" * 20 + "\n")
         for i, class_name in enumerate(classifier.class_labels):
             if i in roc_auc_scores:
                 f.write(f"{class_name}: {roc_auc_scores[i]:.3f}\n")
@@ -408,20 +472,33 @@ def test_three_class_glioma_classification():
                 f.write(f"{class_name}: Not present in data\n")
         f.write(f"Micro-average: {roc_auc_scores['micro']:.3f}\n\n")
 
-        f.write("Classification Report:\n")
-        f.write(classification_report(existing_labels, predictions, 
-                                    labels=present_labels,
-                                    target_names=present_class_names))
+        f.write("CLASSIFICATION REPORT:\n")
+        f.write("-" * 20 + "\n")
+        f.write(class_report)
+        f.write("\n")
 
-        f.write(f"\nLabel distribution:\n")
-        for i, class_name in enumerate(classifier.class_labels):
-            count = np.sum(np.array(existing_labels) == i)
-            f.write(f"{class_name}: {count}\n")
+        f.write("CONFUSION MATRIX:\n")
+        f.write("-" * 20 + "\n")
+        f.write("Rows: True labels, Columns: Predicted labels\n")
+        f.write("Classes: " + ", ".join([f"{i}={name}" for i, name in enumerate(present_class_names)]) + "\n")
+        f.write(str(cm) + "\n\n")
 
-    print(f"\nResults saved to: {metrics_path}")
+        f.write("FILES GENERATED:\n")
+        f.write("-" * 20 + "\n")
+        f.write("- roc_curves.png: ROC curves for all classes\n")
+        f.write("- confusion_matrix.png: Confusion matrix heatmap\n")
+        f.write("- prediction_distribution.png: Prediction probability distributions\n")
+        f.write("- classification_results.txt: This comprehensive report\n")
 
-    return accuracy, predictions, probabilities, roc_auc_scores
+    print(f"\nAll results saved to: {results_dir}")
+    print(f"Files generated:")
+    print(f"  - ROC curves: {roc_save_path}")
+    print(f"  - Confusion matrix: {cm_save_path}")
+    print(f"  - Prediction distribution: {pred_dist_save_path}")
+    print(f"  - Results report: {metrics_path}")
+
+    return accuracy, predictions, probabilities, roc_auc_scores, results_dir
 
 # Example usage
 if __name__ == "__main__":
-    accuracy, predictions, probabilities, auc_scores = test_three_class_glioma_classification()
+    accuracy, predictions, probabilities, auc_scores, results_dir = test_three_class_glioma_classification()
