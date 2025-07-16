@@ -51,6 +51,8 @@ for f, l in zip(test_files, test_labels):
         existing_labels.append(l)
 
 print(f"Testing {len(existing_files)} files")
+print(f"Class distribution: {np.bincount(existing_labels)}")
+print(f"Class ratio: {np.mean(existing_labels):.3f}")
 
 # Load model and test
 model = load_model(model_path, compile=False)
