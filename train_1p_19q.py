@@ -179,5 +179,5 @@ history = model.fit(
     callbacks=callbacks
 )
 
-best_loss = max(history.history['val_loss'])
+best_loss = min(history.history['val_loss'])
 print('Training finished. Loss: {}'.format(best_loss))
