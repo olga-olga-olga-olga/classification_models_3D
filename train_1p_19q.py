@@ -111,12 +111,12 @@ batch_size = 1
 num_classes = 1
 patience = 50
 learning_rate = 0.00001
-model_type = 'densenet169'
+model_type = 'resnet50'
 epochs = 50
 dropout = 0.1
 
 
-ResNet18, preprocess_input = Classifiers.get('densenet169')
+ResNet18, preprocess_input = Classifiers.get('resnet50')
 model = ResNet18(input_shape=(240, 240, 160, 3), classes=num_classes, weights='imagenet')
 
 x = model.layers[-1].output
@@ -139,11 +139,13 @@ def focal_loss(alpha=0.8, gamma=2.3):
         return -tf.reduce_mean(focal_weight * tf.math.log(pt))
     return loss
 
-loss_to_use = focal_loss(gamma=2.0, alpha=0.25)
-# loss_to_use = 'binary_crossentropy'
+gamma = 2.0
+alpha = 0.75
+loss_to_use = focal_loss(gamma=gamma, alpha=alpha)
+#loss_to_use = 'binary_crossentropy'
 model.compile(optimizer=optim, loss=loss_to_use, metrics=['acc', ], jit_compile=True)
 
-print(f"learning rate: {learning_rate}, batch size: {batch_size}, model type: {model_type}, patience: {patience}, epochs: {epochs}, dropout: {dropout}, focal loss gamma: {loss_to_use.gamma}, focal loss alpha: {loss_to_use.alpha}")
+print(f"learning rate: {learning_rate}, batch size: {batch_size}, model type: {model_type}, patience: {patience}, epochs: {epochs}, dropout: {dropout}, focal loss gamma: {gamma}, focal loss alpha: {alpha}")
 
 # Change all model/log save paths to your directory
 save_dir = '/home/radv/ofilipowicz/my-scratch/all_the_runs_m2/models_1cat_1q19p/'

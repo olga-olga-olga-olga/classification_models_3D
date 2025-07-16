@@ -240,10 +240,6 @@ def test_three_class_glioma_classification():
     print("Filtering for IMAGO dataset...")
     print(f"Found {len(df_imago)} IMAGO samples")
 
-    if len(df_imago) == 0:
-        print("No IMAGO samples found! Check the Dataset column values.")
-        print("Available datasets:", df['Dataset'].unique())
-        return
 
     # Create file paths for IMAGO samples only
     test_files = [f'{data_path}/{pid}.npy' for pid in df_imago['Pseudo']]
