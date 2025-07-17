@@ -296,8 +296,9 @@ def test_three_class_glioma_classification():
     print(f"Results will be saved to: {results_dir}")
     
     # PATHS - Update these to your actual model paths
-    idh_model_path = '/home/radv/ofilipowicz/my-scratch/olga/densenet121_2-0.0546-12.keras'
-    codeletion_model_path = '/home/radv/ofilipowicz/my-scratch/all_the_runs_m2/models_1cat_1q19p/run_20250715_230346/densenet169-0.1060-35.keras'
+    # idh_model_path = '/home/radv/ofilipowicz/my-scratch/olga/densenet121_2-0.0546-12.keras'
+    idh_model_path = '/home/radv/ofilipowicz/my-scratch/all_the_runs_m2/models_1cat/run_20250707_110739/resnet34-0.1771-28.keras'
+    codeletion_model_path = '/home/radv/ofilipowicz/my-scratch/all_the_runs_m2/models_1cat_1q19p/run_20250715_230346/densenet169-0.1089-39.keras'
     data_path = '/data/radv/radG/RAD/users/i.wamelink/AI_benchmark/AI_benchmark_datasets/temp/609_3D-DD-Res-U-Net_Osman/testing/images_t1_t2_fl/'
     excel_path = '/home/radv/ofilipowicz/my-scratch/datasetlabels/Clinical_data_1st_release.xlsx'
 

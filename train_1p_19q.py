@@ -140,7 +140,7 @@ def focal_loss(alpha=0.8, gamma=2.3):
     return loss
 
 gamma = 2.0
-alpha = 0.75
+alpha = 0.5
 loss_to_use = focal_loss(gamma=gamma, alpha=alpha)
 #loss_to_use = 'binary_crossentropy'
 model.compile(optimizer=optim, loss=loss_to_use, metrics=['acc', ], jit_compile=True)
