@@ -109,14 +109,14 @@ print(f"Training with {len(train_patients)} train files, {len(val_patients)} val
 
 batch_size = 1
 num_classes = 1
-patience = 50
-learning_rate = 0.00001
-model_type = 'resnet50'
+patience = 30
+learning_rate = 0.0001
+model_type = 'efficientnetb3'
 epochs = 50
-dropout = 0.1
+dropout = 0.2
 
 
-ResNet18, preprocess_input = Classifiers.get('resnet50')
+ResNet18, preprocess_input = Classifiers.get('efficientnetb3')
 model = ResNet18(input_shape=(240, 240, 160, 3), classes=num_classes, weights='imagenet')
 
 x = model.layers[-1].output
@@ -139,8 +139,8 @@ def focal_loss(alpha=0.8, gamma=2.3):
         return -tf.reduce_mean(focal_weight * tf.math.log(pt))
     return loss
 
-gamma = 2.0
-alpha = 0.5
+gamma = 2.5
+alpha = 0.2
 loss_to_use = focal_loss(gamma=gamma, alpha=alpha)
 #loss_to_use = 'binary_crossentropy'
 model.compile(optimizer=optim, loss=loss_to_use, metrics=['acc', ], jit_compile=True)
