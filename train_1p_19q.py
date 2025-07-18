@@ -142,6 +142,17 @@ def focal_loss(alpha=0.8, gamma=2.3):
 gamma = 2.5
 alpha = 0.2
 loss_to_use = focal_loss(gamma=gamma, alpha=alpha)
+
+def weighted_categorical_crossentropy(y_true, y_pred, weights):
+    # weights = [1.0, 8.0] for minority class emphasis
+    y_pred = tf.clip_by_value(y_pred, 1e-7, 1 - 1e-7)
+    loss = y_true * tf.math.log(y_pred) * weights
+    return -tf.reduce_sum(loss, axis=1)
+
+# Usage
+loss_fn = lambda y_true, y_pred: weighted_categorical_crossentropy(y_true, y_pred, [1.0, 8.0])
+
+
 #loss_to_use = 'binary_crossentropy'
 model.compile(optimizer=optim, loss=loss_to_use, metrics=['acc', ], jit_compile=True)
 
